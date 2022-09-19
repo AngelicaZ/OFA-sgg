@@ -1,2 +1,1 @@
-count_tgt_seq_len.txt filter=lfs diff=lfs merge=lfs -text
 dataset/sgg_data/VG/VG-SGG-with-attri.h5 filter=lfs diff=lfs merge=lfs -text
