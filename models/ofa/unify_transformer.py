@@ -10,16 +10,16 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.distributed import fsdp_wrap
-from fairseq.models import (
+from fairseq.fairseq import utils
+from fairseq.fairseq.distributed import fsdp_wrap
+from fairseq.fairseq.models import (
     FairseqEncoder,
     FairseqEncoderDecoderModel,
     FairseqIncrementalDecoder,
     register_model,
     register_model_architecture,
 )
-from fairseq.modules import (
+from fairseq.fairseq.modules import (
     AdaptiveSoftmax,
     BaseLayer,
     FairseqDropout,
@@ -28,8 +28,8 @@ from fairseq.modules import (
     SinusoidalPositionalEmbedding,
     GradMultiply
 )
-from fairseq.modules.checkpoint_activations import checkpoint_wrapper
-from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
+from fairseq.fairseq.modules.checkpoint_activations import checkpoint_wrapper
+from fairseq.fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
 from torch import Tensor
 
 from .unify_transformer_layer import TransformerEncoderLayer, TransformerDecoderLayer

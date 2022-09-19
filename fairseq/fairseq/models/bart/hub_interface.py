@@ -11,9 +11,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.data import encoders
-from fairseq.hub_utils import GeneratorHubInterface
+from fairseq.fairseq import utils
+from fairseq.fairseq.data import encoders
+from fairseq.fairseq.hub_utils import GeneratorHubInterface
 from omegaconf import open_dict
 
 

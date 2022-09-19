@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 import torch
-from fairseq.data import FairseqDataset
+from fairseq.fairseq.data import FairseqDataset
 
 
 class BlockPairDataset(FairseqDataset):

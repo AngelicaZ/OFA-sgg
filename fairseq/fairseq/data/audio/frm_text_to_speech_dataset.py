@@ -12,11 +12,11 @@ from typing import List, Optional
 
 import numpy as np
 import torch
-from fairseq.data import Dictionary
-from fairseq.data.audio.speech_to_text_dataset import (
+from fairseq.fairseq.data import Dictionary
+from fairseq.fairseq.data.audio.speech_to_text_dataset import (
     S2TDataConfig
 )
-from fairseq.data.audio.text_to_speech_dataset import (
+from fairseq.fairseq.data.audio.text_to_speech_dataset import (
     TextToSpeechDataset, TextToSpeechDatasetCreator
 )
 

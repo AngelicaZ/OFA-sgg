@@ -10,12 +10,12 @@ from typing import Any
 import torch
 import torch.nn as nn
 from dataclasses import dataclass, field
-from fairseq import checkpoint_utils, tasks, utils
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.models import BaseFairseqModel, FairseqEncoder, register_model
-from fairseq.models.hubert.hubert import MASKING_DISTRIBUTION_CHOICES
-from fairseq.tasks import FairseqTask
+from fairseq.fairseq import checkpoint_utils, tasks, utils
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.fairseq.models import BaseFairseqModel, FairseqEncoder, register_model
+from fairseq.fairseq.models.hubert.hubert import MASKING_DISTRIBUTION_CHOICES
+from fairseq.fairseq.tasks import FairseqTask
 from omegaconf import II, MISSING
 
 

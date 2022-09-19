@@ -8,13 +8,13 @@ import logging
 import torch
 from torch import nn
 
-from fairseq.models import (FairseqEncoder, FairseqEncoderModel, register_model,
+from fairseq.fairseq.models import (FairseqEncoder, FairseqEncoderModel, register_model,
                             register_model_architecture)
-from fairseq.modules import (
+from fairseq.fairseq.modules import (
     LayerNorm, PositionalEmbedding, FairseqDropout, MultiheadAttention
 )
-from fairseq import utils
-from fairseq.data.data_utils import lengths_to_padding_mask
+from fairseq.fairseq import utils
+from fairseq.fairseq.data.data_utils import lengths_to_padding_mask
 
 
 logger = logging.getLogger(__name__)

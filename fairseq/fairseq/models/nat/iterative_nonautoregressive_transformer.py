@@ -4,8 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from fairseq.models import register_model, register_model_architecture
-from fairseq.models.nat import NATransformerModel
+from fairseq.fairseq.models import register_model, register_model_architecture
+from fairseq.fairseq.models.nat import NATransformerModel
 
 
 def _sequential_poisoning(s, V, beta=0.33, bos=2, eos=3, pad=1):

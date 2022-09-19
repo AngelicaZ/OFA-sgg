@@ -14,8 +14,8 @@ from collections import OrderedDict
 import numpy as np
 import sacrebleu
 import string
-from fairseq import metrics, utils
-from fairseq.tasks import register_task
+from fairseq.fairseq import metrics, utils
+from fairseq.fairseq.tasks import register_task
 
 from tasks.ofa_task import OFATask, OFAConfig
 from data.mm_data.caption_dataset import CaptionDataset

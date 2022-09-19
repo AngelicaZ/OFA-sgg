@@ -13,10 +13,10 @@ from dataclasses import dataclass, field
 import torch
 from omegaconf import II
 
-from fairseq import metrics, utils
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
-from fairseq.data.data_utils import lengths_to_mask
+from fairseq.fairseq import metrics, utils
+from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.data.data_utils import lengths_to_mask
 import torch.nn.functional as F
 
 

@@ -3,7 +3,7 @@ import numbers
 from typing import Optional
 
 import numpy as np
-from fairseq.data.audio.feature_transforms import (
+from fairseq.fairseq.data.audio.feature_transforms import (
     AudioFeatureTransform,
     register_audio_feature_transform,
 )

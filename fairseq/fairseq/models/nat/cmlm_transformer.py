@@ -10,9 +10,9 @@ Ghazvininejad, Marjan, et al.
 arXiv preprint arXiv:1904.09324 (2019).
 """
 
-from fairseq.models import register_model, register_model_architecture
-from fairseq.models.nat import NATransformerModel
-from fairseq.utils import new_arange
+from fairseq.fairseq.models import register_model, register_model_architecture
+from fairseq.fairseq.models.nat import NATransformerModel
+from fairseq.fairseq.utils import new_arange
 
 
 def _skeptical_unmasking(output_scores, output_masks, p):

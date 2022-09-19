@@ -4,9 +4,9 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from fairseq.models import register_model, register_model_architecture
-from fairseq.models.nat import NATransformerModel, base_architecture
-from fairseq.modules import DynamicCRF
+from fairseq.fairseq.models import register_model, register_model_architecture
+from fairseq.fairseq.models.nat import NATransformerModel, base_architecture
+from fairseq.fairseq.modules import DynamicCRF
 
 
 @register_model("nacrf_transformer")

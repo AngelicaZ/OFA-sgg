@@ -5,9 +5,9 @@
 
 from dataclasses import dataclass, field
 
-from fairseq.dataclass import FairseqDataclass
-from fairseq.scoring import BaseScorer, register_scorer
-from fairseq.scoring.tokenizer import EvaluationTokenizer
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.scoring import BaseScorer, register_scorer
+from fairseq.fairseq.scoring.tokenizer import EvaluationTokenizer
 
 
 @dataclass

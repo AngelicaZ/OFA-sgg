@@ -12,9 +12,9 @@ from typing import Any, List
 import torch
 import torch.distributed as dist
 import torch.optim
-from fairseq.dataclass import FairseqDataclass
-from fairseq.optim import FairseqOptimizer, register_optimizer
-from fairseq.optim.fused_adam import get_fused_adam_class
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.optim import FairseqOptimizer, register_optimizer
+from fairseq.fairseq.optim.fused_adam import get_fused_adam_class
 from omegaconf import II, OmegaConf
 
 

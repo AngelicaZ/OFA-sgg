@@ -21,7 +21,7 @@ import time
 
 import torch
 import torch.distributed as dist
-from fairseq.dataclass.configs import DistributedTrainingConfig, FairseqConfig
+from fairseq.fairseq.dataclass.configs import DistributedTrainingConfig, FairseqConfig
 from omegaconf import open_dict
 
 try:
@@ -148,7 +148,7 @@ def _infer_single_node_init(cfg: DistributedTrainingConfig):
 
 
 def _pipeline_parallel_pre_init(cfg: DistributedTrainingConfig):
-    from fairseq import utils
+    from fairseq.fairseq import utils
 
     balance_exists = (
         cfg.pipeline_balance is not None
@@ -242,7 +242,7 @@ def _pipeline_parallel_post_init(
 
 def distributed_init(cfg: FairseqConfig):
     if isinstance(cfg, Namespace):
-        from fairseq.dataclass.utils import convert_namespace_to_omegaconf
+        from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
 
         cfg = convert_namespace_to_omegaconf(cfg)
 
@@ -309,7 +309,7 @@ def distributed_init(cfg: FairseqConfig):
 
     if cfg.common.model_parallel_size > 1:
         try:
-            from fairseq.model_parallel.megatron.mpu import (
+            from fairseq.fairseq.model_parallel.megatron.mpu import (
                 initialize_model_parallel,
                 model_parallel_cuda_manual_seed,
             )
@@ -471,7 +471,7 @@ def get_data_parallel_group():
     """Get the data parallel group the caller rank belongs to."""
     global _USE_MEGATRON
     if _USE_MEGATRON:
-        from fairseq.model_parallel.megatron import mpu
+        from fairseq.fairseq.model_parallel.megatron import mpu
 
         return mpu.get_data_parallel_group()
     else:
@@ -491,7 +491,7 @@ def get_data_parallel_world_size():
 def get_model_parallel_group():
     global _USE_MEGATRON
     if _USE_MEGATRON:
-        from fairseq.model_parallel.megatron import mpu
+        from fairseq.fairseq.model_parallel.megatron import mpu
 
         return mpu.get_model_parallel_group()
     else:
@@ -590,7 +590,7 @@ def all_gather_list(data, group=None, max_size=16384):
         max_size (int, optional): maximum size of the data to be gathered
             across workers
     """
-    from fairseq import utils
+    from fairseq.fairseq import utils
 
     if group is None:
         group = get_global_group()

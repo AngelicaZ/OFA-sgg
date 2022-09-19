@@ -8,10 +8,10 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
-from fairseq.data import Dictionary, FairseqDataset, data_utils
-from fairseq.data.concat_dataset import ConcatDataset
-from fairseq.data.legacy.block_pair_dataset import BlockPairDataset
-from fairseq.data.token_block_dataset import TokenBlockDataset
+from fairseq.fairseq.data import Dictionary, FairseqDataset, data_utils
+from fairseq.fairseq.data.concat_dataset import ConcatDataset
+from fairseq.fairseq.data.legacy.block_pair_dataset import BlockPairDataset
+from fairseq.fairseq.data.token_block_dataset import TokenBlockDataset
 
 
 class MaskedLMDataset(FairseqDataset):

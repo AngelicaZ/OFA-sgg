@@ -14,14 +14,14 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
-from fairseq.data import (
+from fairseq.fairseq.data import (
     ConcatDataset,
     Dictionary,
     FairseqDataset,
     ResamplingDataset,
     data_utils as fairseq_data_utils,
 )
-from fairseq.data.audio.audio_utils import (
+from fairseq.fairseq.data.audio.audio_utils import (
     get_fbank,
     get_waveform,
     read_from_stored_zip,
@@ -30,8 +30,8 @@ from fairseq.data.audio.audio_utils import (
     parse_path,
     FEATURE_OR_SF_AUDIO_FILE_EXTENSIONS,
 )
-from fairseq.data.audio.feature_transforms import CompositeAudioFeatureTransform
-from fairseq.data.audio.data_cfg import S2TDataConfig
+from fairseq.fairseq.data.audio.feature_transforms import CompositeAudioFeatureTransform
+from fairseq.fairseq.data.audio.data_cfg import S2TDataConfig
 
 
 logger = logging.getLogger(__name__)

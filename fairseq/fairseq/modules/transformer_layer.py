@@ -7,12 +7,12 @@ from typing import Dict, List, Optional
 
 import torch
 import torch.nn as nn
-from fairseq import utils
-from fairseq.modules import LayerNorm, MultiheadAttention
-from fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.modules.quant_noise import quant_noise
+from fairseq.fairseq import utils
+from fairseq.fairseq.modules import LayerNorm, MultiheadAttention
+from fairseq.fairseq.modules.fairseq_dropout import FairseqDropout
+from fairseq.fairseq.modules.quant_noise import quant_noise
 from torch import Tensor
-from fairseq.models.transformer import (
+from fairseq.fairseq.models.transformer import (
     TransformerConfig,
 )
 

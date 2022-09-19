@@ -22,7 +22,7 @@ import copy
 import logging
 
 import torch
-from fairseq import checkpoint_utils
+from fairseq.fairseq import checkpoint_utils
 
 
 class EMA(object):

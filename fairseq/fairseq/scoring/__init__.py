@@ -8,7 +8,7 @@ import importlib
 import os
 from abc import ABC, abstractmethod
 
-from fairseq import registry
+from fairseq.fairseq import registry
 from omegaconf import DictConfig
 
 
@@ -52,4 +52,4 @@ def build_scorer(choice, tgt_dict):
 for file in sorted(os.listdir(os.path.dirname(__file__))):
     if file.endswith(".py") and not file.startswith("_"):
         module = file[: file.find(".py")]
-        importlib.import_module("fairseq.scoring." + module)
+        importlib.import_module("fairseq.fairseq.scoring." + module)

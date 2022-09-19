@@ -17,8 +17,8 @@ from typing import Optional, Tuple
 import numpy as np
 import torch
 
-from fairseq.file_io import PathManager
-from fairseq import utils
+from fairseq.fairseq.file_io import PathManager
+from fairseq.fairseq import utils
 import os
 
 logger = logging.getLogger(__name__)

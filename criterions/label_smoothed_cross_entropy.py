@@ -11,9 +11,9 @@ from typing import Optional
 import torch
 import torch.nn.functional as F
 import numpy as np
-from fairseq import metrics, utils
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq import metrics, utils
+from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.fairseq.dataclass import FairseqDataclass
 from omegaconf import II
 
 

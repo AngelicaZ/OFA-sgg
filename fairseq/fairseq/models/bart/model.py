@@ -12,10 +12,10 @@ import logging
 
 import torch
 import torch.nn as nn
-from fairseq import utils
-from fairseq.models import register_model, register_model_architecture
-from fairseq.models.transformer import TransformerModel
-from fairseq.modules.transformer_sentence_encoder import init_bert_params
+from fairseq.fairseq import utils
+from fairseq.fairseq.models import register_model, register_model_architecture
+from fairseq.fairseq.models.transformer import TransformerModel
+from fairseq.fairseq.modules.transformer_sentence_encoder import init_bert_params
 
 from .hub_interface import BARTHubInterface
 

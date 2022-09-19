@@ -17,7 +17,7 @@ dataset_choose='VG'
 
 
 img_dir=/data/c/zhuowan/gqa/data/images/
-base_dir=/home/chenyu/scene_graph_generation/OFA/dataset/sgg_data/VG
+base_dir=../../dataset/sgg_data/VG
 data=${base_dir}/VG-SGG-with-attri.h5
 dict_file=${base_dir}/VG-SGG-dicts-with-attri.json
 image_file=${base_dir}/image_data.json
@@ -26,9 +26,9 @@ log_dir=./sgg_logs/VG
 save_dir=./sgg_checkpoints/VG
 mkdir -p $log_dir $save_dir
 
-bpe_dir=/home/chenyu/scene_graph_generation/OFA/utils/BPE
+bpe_dir=../../utils/BPE
 bpe='gpt2'
-user_dir=/home/chenyu/scene_graph_generation/OFA/ofa_module
+user_dir=../../ofa_module
 
 task=sgg
 arch=ofa_tiny
@@ -70,8 +70,8 @@ for max_epoch in 50; do
       echo "arch "${arch}
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_1000_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_1000_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
@@ -123,7 +123,7 @@ for max_epoch in 50; do
           --save-interval=1 --validate-interval=5 \
           --save-interval-updates=500 --validate-interval-updates=500 \
           --eval-bleu \
-          --eval-args='{"beam":5,"max_len":10,"no_repeat_ngram_size":3}' \
+          --eval-args='{"beam":5,"max_len":1000,"no_repeat_ngram_size":3}' \
           --best-checkpoint-metric=bleu --maximize-best-checkpoint-metric \
           --max-src-length=${max_src_length} \
           --max-tgt-length=${max_tgt_length} \

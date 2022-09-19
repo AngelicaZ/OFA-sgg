@@ -4,8 +4,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from fairseq import utils
-from fairseq.dataclass.utils import gen_parser_from_dataclass
+from fairseq.fairseq import utils
+from fairseq.fairseq.dataclass.utils import gen_parser_from_dataclass
 
 
 class FairseqOptimizer(object):

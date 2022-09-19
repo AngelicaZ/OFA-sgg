@@ -13,17 +13,17 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.models import BaseFairseqModel, register_model
-from fairseq.modules import (
+from fairseq.fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from fairseq.fairseq.models import BaseFairseqModel, register_model
+from fairseq.fairseq.modules import (
     Fp32GroupNorm,
     Fp32LayerNorm,
     GumbelVectorQuantizer,
     KmeansVectorQuantizer,
     TransposeLast,
 )
-from fairseq.tasks import FairseqTask
-from fairseq.utils import buffered_arange
+from fairseq.fairseq.tasks import FairseqTask
+from fairseq.fairseq.utils import buffered_arange
 
 
 logger = logging.getLogger(__name__)

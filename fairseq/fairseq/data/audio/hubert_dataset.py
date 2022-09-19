@@ -13,8 +13,8 @@ import numpy as np
 
 import torch
 import torch.nn.functional as F
-from fairseq.data import data_utils
-from fairseq.data.fairseq_dataset import FairseqDataset
+from fairseq.fairseq.data import data_utils
+from fairseq.fairseq.data.fairseq_dataset import FairseqDataset
 
 logger = logging.getLogger(__name__)
 

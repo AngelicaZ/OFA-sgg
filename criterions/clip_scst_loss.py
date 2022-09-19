@@ -11,11 +11,11 @@ from torchvision import transforms
 
 import torch
 import numpy as np
-from fairseq import metrics
-from fairseq.data import data_utils
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
-from fairseq import utils
+from fairseq.fairseq import metrics
+from fairseq.fairseq.data import data_utils
+from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq import utils
 from omegaconf import II
 
 from models import clip

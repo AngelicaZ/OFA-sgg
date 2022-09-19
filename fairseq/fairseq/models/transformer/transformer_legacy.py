@@ -3,18 +3,18 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from fairseq.dataclass.utils import gen_parser_from_dataclass
-from fairseq.models import (
+from fairseq.fairseq.dataclass.utils import gen_parser_from_dataclass
+from fairseq.fairseq.models import (
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer.transformer_config import (
+from fairseq.fairseq.models.transformer.transformer_config import (
     TransformerConfig,
     DEFAULT_MAX_SOURCE_POSITIONS,
     DEFAULT_MAX_TARGET_POSITIONS,
     DEFAULT_MIN_PARAMS_TO_WRAP,
 )
-from fairseq.models.transformer.transformer_base import (
+from fairseq.fairseq.models.transformer.transformer_base import (
     TransformerModelBase,
 )
 

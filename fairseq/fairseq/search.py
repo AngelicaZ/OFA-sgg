@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import torch
 import torch.nn as nn
-from fairseq.token_generation_constraints import (
+from fairseq.fairseq.token_generation_constraints import (
     ConstraintState,
     OrderedConstraintState,
     UnorderedConstraintState,

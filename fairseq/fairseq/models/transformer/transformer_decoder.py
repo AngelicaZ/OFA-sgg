@@ -8,11 +8,11 @@ from typing import Any, Dict, List, Optional
 
 import torch
 import torch.nn as nn
-from fairseq import utils
-from fairseq.distributed import fsdp_wrap
-from fairseq.models import FairseqIncrementalDecoder
-from fairseq.models.transformer import TransformerConfig
-from fairseq.modules import (
+from fairseq.fairseq import utils
+from fairseq.fairseq.distributed import fsdp_wrap
+from fairseq.fairseq.models import FairseqIncrementalDecoder
+from fairseq.fairseq.models.transformer import TransformerConfig
+from fairseq.fairseq.modules import (
     AdaptiveSoftmax,
     BaseLayer,
     FairseqDropout,
@@ -21,9 +21,9 @@ from fairseq.modules import (
     PositionalEmbedding,
     SinusoidalPositionalEmbedding,
 )
-from fairseq.modules import transformer_layer
-from fairseq.modules.checkpoint_activations import checkpoint_wrapper
-from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
+from fairseq.fairseq.modules import transformer_layer
+from fairseq.fairseq.modules.checkpoint_activations import checkpoint_wrapper
+from fairseq.fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
 from torch import Tensor
 
 

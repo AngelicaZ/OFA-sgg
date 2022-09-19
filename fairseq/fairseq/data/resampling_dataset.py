@@ -6,7 +6,7 @@
 import logging
 
 import numpy as np
-from fairseq.data import BaseWrapperDataset, plasma_utils
+from fairseq.fairseq.data import BaseWrapperDataset, plasma_utils
 
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ from collections import defaultdict
 from itertools import chain
 
 import torch
-from fairseq import optim
+from fairseq.fairseq import optim
 from omegaconf import DictConfig
 
 from .dynamic_loss_scaler import DynamicLossScaler

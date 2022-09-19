@@ -11,11 +11,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.data.data_utils import compute_mask_indices
-from fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.models import BaseFairseqModel, register_model
-from fairseq.modules import (
+from fairseq.fairseq import utils
+from fairseq.fairseq.data.data_utils import compute_mask_indices
+from fairseq.fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from fairseq.fairseq.models import BaseFairseqModel, register_model
+from fairseq.fairseq.modules import (
     Fp32GroupNorm,
     Fp32LayerNorm,
     GradMultiply,
@@ -25,8 +25,8 @@ from fairseq.modules import (
     SamePad,
     TransposeLast,
 )
-from fairseq.modules.transformer_sentence_encoder import init_bert_params
-from fairseq.utils import buffered_arange, index_put, is_xla_tensor
+from fairseq.fairseq.modules.transformer_sentence_encoder import init_bert_params
+from fairseq.fairseq.utils import buffered_arange, index_put, is_xla_tensor
 
 
 EXTRACTOR_MODE_CHOICES = ChoiceEnum(["default", "layer_norm"])

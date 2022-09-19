@@ -6,7 +6,7 @@
 Unsupervised Cross-lingual Representation Learning at Scale
 """
 
-from fairseq.models import register_model
+from fairseq.fairseq.models import register_model
 
 from .hub_interface import RobertaHubInterface
 from .model import RobertaModel

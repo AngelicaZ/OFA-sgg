@@ -16,15 +16,15 @@ from itertools import chain
 from typing import Any, Dict, List
 
 import torch
-from fairseq import checkpoint_utils, models, optim, utils
-from fairseq.dataclass.configs import FairseqConfig
-from fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.distributed import utils as distributed_utils
-from fairseq.file_io import PathManager
-from fairseq.logging import meters, metrics
-from fairseq.models.ema import build_ema
-from fairseq.nan_detector import NanDetector
-from fairseq.optim import lr_scheduler
+from fairseq.fairseq import checkpoint_utils, models, optim, utils
+from fairseq.fairseq.dataclass.configs import FairseqConfig
+from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.fairseq.distributed import utils as distributed_utils
+from fairseq.fairseq.file_io import PathManager
+from fairseq.fairseq.logging import meters, metrics
+from fairseq.fairseq.models.ema import build_ema
+from fairseq.fairseq.nan_detector import NanDetector
+from fairseq.fairseq.optim import lr_scheduler
 from omegaconf import OmegaConf
 
 logger = logging.getLogger(__name__)

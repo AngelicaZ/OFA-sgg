@@ -6,7 +6,7 @@
 GottBERT: a pure German Language Model
 """
 
-from fairseq.models import register_model
+from fairseq.fairseq.models import register_model
 
 from .hub_interface import RobertaHubInterface
 from .model import RobertaModel

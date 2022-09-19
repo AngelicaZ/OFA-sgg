@@ -8,14 +8,14 @@ import logging
 import copy
 from typing import Dict, List, Optional, Tuple
 
-from fairseq import utils, checkpoint_utils
-from fairseq.models import (FairseqEncoderDecoderModel, FairseqEncoder,
+from fairseq.fairseq import utils, checkpoint_utils
+from fairseq.fairseq.models import (FairseqEncoderDecoderModel, FairseqEncoder,
                             register_model, register_model_architecture)
-from fairseq.models.transformer import Embedding, TransformerDecoder
-from fairseq.models.wav2vec import Wav2VecEncoder
-from fairseq.modules.layer_norm import LayerNorm
-from fairseq.data.data_utils import lengths_to_padding_mask
-from fairseq.utils import safe_hasattr
+from fairseq.fairseq.models.transformer import Embedding, TransformerDecoder
+from fairseq.fairseq.models.wav2vec import Wav2VecEncoder
+from fairseq.fairseq.modules.layer_norm import LayerNorm
+from fairseq.fairseq.data.data_utils import lengths_to_padding_mask
+from fairseq.fairseq.utils import safe_hasattr
 from torch import Tensor
 import torch.nn as nn
 

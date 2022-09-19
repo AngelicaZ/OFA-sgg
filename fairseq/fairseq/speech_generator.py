@@ -6,7 +6,7 @@
 import torch
 import numpy as np
 
-from fairseq.data.audio.speech_to_text_dataset import S2TDataConfig
+from fairseq.fairseq.data.audio.speech_to_text_dataset import S2TDataConfig
 
 
 class SpeechGenerator(object):

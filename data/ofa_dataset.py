@@ -6,7 +6,7 @@
 import logging
 import re
 import torch.utils.data
-from fairseq.data import FairseqDataset
+from fairseq.fairseq.data import FairseqDataset
 
 logger = logging.getLogger(__name__)
 

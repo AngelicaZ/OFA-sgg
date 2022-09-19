@@ -11,10 +11,10 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 
-from fairseq.data.audio.text_to_speech_dataset import TextToSpeechDatasetCreator
-from fairseq.tasks import register_task
-from fairseq.tasks.speech_to_text import SpeechToTextTask
-from fairseq.speech_generator import (
+from fairseq.fairseq.data.audio.text_to_speech_dataset import TextToSpeechDatasetCreator
+from fairseq.fairseq.tasks import register_task
+from fairseq.fairseq.tasks.speech_to_text import SpeechToTextTask
+from fairseq.fairseq.speech_generator import (
     AutoRegressiveSpeechGenerator, NonAutoregressiveSpeechGenerator,
     TeacherForcingAutoRegressiveSpeechGenerator
 )

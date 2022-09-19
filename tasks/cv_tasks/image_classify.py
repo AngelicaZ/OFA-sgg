@@ -13,8 +13,8 @@ from typing import Optional
 from data.file_dataset import FileDataset
 
 import torch
-from fairseq import metrics
-from fairseq.tasks import register_task
+from fairseq.fairseq import metrics
+from fairseq.fairseq.tasks import register_task
 
 from data.cv_data.image_classify_dataset import ImageClassifyDataset
 from data import data_utils

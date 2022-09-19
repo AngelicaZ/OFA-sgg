@@ -6,12 +6,12 @@
 import logging
 
 import torch.nn as nn
-from fairseq.model_parallel.modules import (
+from fairseq.fairseq.model_parallel.modules import (
     ModelParallelTransformerDecoderLayer,
     ModelParallelTransformerEncoderLayer,
 )
-from fairseq.models import register_model
-from fairseq.models.transformer import (
+from fairseq.fairseq.models import register_model
+from fairseq.fairseq.models.transformer import (
     TransformerDecoder,
     TransformerEncoder,
     TransformerModel,
@@ -19,7 +19,7 @@ from fairseq.models.transformer import (
 
 
 try:
-    from fairseq.model_parallel.megatron.mpu import (
+    from fairseq.fairseq.model_parallel.megatron.mpu import (
         copy_to_model_parallel_region,
         gather_from_model_parallel_region,
         VocabParallelEmbedding,

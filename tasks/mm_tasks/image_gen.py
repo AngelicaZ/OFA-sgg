@@ -18,9 +18,9 @@ from io import BytesIO
 
 import torch
 import numpy as np
-from fairseq import metrics
-from fairseq.tasks import register_task
-from fairseq.dataclass import ChoiceEnum
+from fairseq.fairseq import metrics
+from fairseq.fairseq.tasks import register_task
+from fairseq.fairseq.dataclass import ChoiceEnum
 
 from models import search, clip
 from models.taming.models.vqgan import GumbelVQ

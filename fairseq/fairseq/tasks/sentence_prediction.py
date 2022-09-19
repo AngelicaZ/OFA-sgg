@@ -12,7 +12,7 @@ from typing import Optional
 from omegaconf import MISSING, II, open_dict, OmegaConf
 
 import numpy as np
-from fairseq.data import (
+from fairseq.fairseq.data import (
     ConcatSentencesDataset,
     Dictionary,
     IdDataset,
@@ -28,9 +28,9 @@ from fairseq.data import (
     StripTokenDataset,
     data_utils,
 )
-from fairseq.data.shorten_dataset import maybe_shorten_dataset
-from fairseq.tasks import FairseqDataclass, FairseqTask, register_task
-from fairseq.dataclass import ChoiceEnum
+from fairseq.fairseq.data.shorten_dataset import maybe_shorten_dataset
+from fairseq.fairseq.tasks import FairseqDataclass, FairseqTask, register_task
+from fairseq.fairseq.dataclass import ChoiceEnum
 
 
 logger = logging.getLogger(__name__)

@@ -5,20 +5,20 @@
 
 from collections import OrderedDict
 
-from fairseq import utils
-from fairseq.models import (
+from fairseq.fairseq import utils
+from fairseq.fairseq.models import (
     FairseqMultiModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer import (
+from fairseq.fairseq.models.transformer import (
     Embedding,
     TransformerDecoder,
     TransformerEncoder,
     TransformerModel,
     base_architecture,
 )
-from fairseq.utils import safe_hasattr
+from fairseq.fairseq.utils import safe_hasattr
 
 
 @register_model("multilingual_transformer")

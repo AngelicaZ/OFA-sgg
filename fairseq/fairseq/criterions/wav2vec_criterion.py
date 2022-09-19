@@ -9,11 +9,11 @@ from typing import List, Optional
 
 import torch
 import torch.nn.functional as F
-from fairseq import metrics, utils
-from fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.dataclass import FairseqDataclass
-from fairseq.logging.meters import safe_round
-from fairseq.utils import is_xla_tensor
+from fairseq.fairseq import metrics, utils
+from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.logging.meters import safe_round
+from fairseq.fairseq.utils import is_xla_tensor
 
 
 @dataclass

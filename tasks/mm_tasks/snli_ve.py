@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
-from fairseq import metrics
-from fairseq.tasks import register_task
+from fairseq.fairseq import metrics
+from fairseq.fairseq.tasks import register_task
 
 from tasks.ofa_task import OFAConfig, OFATask
 from data.mm_data.snli_ve_dataset import SnliVeDataset

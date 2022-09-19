@@ -16,9 +16,9 @@ from collections import OrderedDict
 import numpy as np
 import sacrebleu
 import torch
-from fairseq.tasks import register_task
+from fairseq.fairseq.tasks import register_task
 import string
-from fairseq import metrics, utils
+from fairseq.fairseq import metrics, utils
 from sacrebleu.metrics import BLEU
 
 from models import search

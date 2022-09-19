@@ -5,8 +5,8 @@
 
 from dataclasses import dataclass
 
-from fairseq.dataclass import FairseqDataclass
-from fairseq.optim.lr_scheduler import FairseqLRScheduler, register_lr_scheduler
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.optim.lr_scheduler import FairseqLRScheduler, register_lr_scheduler
 
 
 @dataclass

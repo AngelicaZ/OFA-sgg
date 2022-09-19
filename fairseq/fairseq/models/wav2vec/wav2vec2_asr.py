@@ -15,19 +15,19 @@ from dataclasses import dataclass, field
 from omegaconf import MISSING, II, open_dict
 from typing import Any, Optional
 
-from fairseq import checkpoint_utils, tasks, utils
-from fairseq.dataclass import FairseqDataclass
-from fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.tasks import FairseqTask
-from fairseq.models import (
+from fairseq.fairseq import checkpoint_utils, tasks, utils
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.fairseq.tasks import FairseqTask
+from fairseq.fairseq.models import (
     BaseFairseqModel,
     FairseqEncoder,
     FairseqEncoderDecoderModel,
     FairseqIncrementalDecoder,
     register_model,
 )
-from fairseq.models.wav2vec.wav2vec2 import MASKING_DISTRIBUTION_CHOICES
-from fairseq.modules import (
+from fairseq.fairseq.models.wav2vec.wav2vec2 import MASKING_DISTRIBUTION_CHOICES
+from fairseq.fairseq.modules import (
     LayerNorm,
     PositionalEmbedding,
     TransformerDecoderLayer,

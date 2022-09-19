@@ -10,9 +10,9 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import checkpoint_utils
-from fairseq.incremental_decoding_utils import with_incremental_state
-from fairseq.models import (
+from fairseq.fairseq import checkpoint_utils
+from fairseq.fairseq.incremental_decoding_utils import with_incremental_state
+from fairseq.fairseq.models import (
     CompositeEncoder,
     FairseqDecoder,
     FairseqEncoder,
@@ -20,7 +20,7 @@ from fairseq.models import (
     register_model,
     register_model_architecture,
 )
-from fairseq.modules import (
+from fairseq.fairseq.modules import (
     DownsampledMultiHeadAttention,
     FairseqDropout,
     GradMultiply,

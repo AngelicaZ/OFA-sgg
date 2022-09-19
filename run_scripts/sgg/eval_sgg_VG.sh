@@ -8,7 +8,7 @@ bpe_dir=../../utils/BPE
 bpe='gpt2'
 
 # img_dir=/data/c/zhuowan/gqa/data/images/
-base_dir=/home/chenyu/scene_graph_generation/OFA/dataset/sgg_data/VG
+base_dir=../../dataset/sgg_data/VG
 data=${base_dir}/VG-SGG-with-attri.h5
 # dict_file=${base_dir}/VG-SGG-dicts-with-attri.json
 # image_file=${base_dir}/image_data.json

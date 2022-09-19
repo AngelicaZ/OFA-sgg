@@ -1,5 +1,5 @@
 import numpy as np
-from fairseq.data import FairseqDataset
+from fairseq.fairseq.data import FairseqDataset
 
 
 class DummyDataset(FairseqDataset):

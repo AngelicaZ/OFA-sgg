@@ -11,18 +11,18 @@ import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq import utils
-from fairseq.models import (
+from fairseq.fairseq import utils
+from fairseq.fairseq.models import (
     FairseqEncoder,
     FairseqEncoderModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer import DEFAULT_MIN_PARAMS_TO_WRAP, TransformerEncoder
-from fairseq.modules import LayerNorm
-from fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
-from fairseq.modules.transformer_sentence_encoder import init_bert_params
-from fairseq.utils import safe_getattr, safe_hasattr
+from fairseq.fairseq.models.transformer import DEFAULT_MIN_PARAMS_TO_WRAP, TransformerEncoder
+from fairseq.fairseq.modules import LayerNorm
+from fairseq.fairseq.modules.quant_noise import quant_noise as apply_quant_noise_
+from fairseq.fairseq.modules.transformer_sentence_encoder import init_bert_params
+from fairseq.fairseq.utils import safe_getattr, safe_hasattr
 
 from .hub_interface import RobertaHubInterface
 

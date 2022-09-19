@@ -7,18 +7,18 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from fairseq import options, utils
-from fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.models import (
+from fairseq.fairseq import options, utils
+from fairseq.fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from fairseq.fairseq.models import (
     FairseqLanguageModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.models.transformer import (
+from fairseq.fairseq.models.transformer import (
     DEFAULT_MIN_PARAMS_TO_WRAP, Embedding, TransformerDecoder
 )
-from fairseq.modules import AdaptiveInput, CharacterTokenEmbedder
-from fairseq.utils import safe_getattr, safe_hasattr
+from fairseq.fairseq.modules import AdaptiveInput, CharacterTokenEmbedder
+from fairseq.fairseq.utils import safe_getattr, safe_hasattr
 from omegaconf import II
 
 

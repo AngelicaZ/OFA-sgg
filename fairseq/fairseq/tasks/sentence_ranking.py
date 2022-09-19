@@ -7,8 +7,8 @@ import logging
 import os
 
 import numpy as np
-from fairseq import utils
-from fairseq.data import (
+from fairseq.fairseq import utils
+from fairseq.fairseq.data import (
     ConcatSentencesDataset,
     Dictionary,
     IdDataset,
@@ -22,8 +22,8 @@ from fairseq.data import (
     TruncateDataset,
     data_utils,
 )
-from fairseq.data.shorten_dataset import maybe_shorten_dataset
-from fairseq.tasks import LegacyFairseqTask, register_task
+from fairseq.fairseq.data.shorten_dataset import maybe_shorten_dataset
+from fairseq.fairseq.tasks import LegacyFairseqTask, register_task
 
 
 logger = logging.getLogger(__name__)

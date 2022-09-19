@@ -5,12 +5,12 @@
 
 import math
 
-from fairseq import metrics, utils
-from fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.fairseq import metrics, utils
+from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
 
 
 try:
-    from fairseq.model_parallel.megatron.mpu.cross_entropy import (
+    from fairseq.fairseq.model_parallel.megatron.mpu.cross_entropy import (
         vocab_parallel_cross_entropy,
     )
 

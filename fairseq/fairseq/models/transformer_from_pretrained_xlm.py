@@ -6,10 +6,10 @@
 import os
 from typing import Any, Dict
 
-from fairseq import checkpoint_utils
-from fairseq.data.legacy.masked_lm_dictionary import MaskedLMDictionary
-from fairseq.models import register_model, register_model_architecture
-from fairseq.models.transformer import (
+from fairseq.fairseq import checkpoint_utils
+from fairseq.fairseq.data.legacy.masked_lm_dictionary import MaskedLMDictionary
+from fairseq.fairseq.models import register_model, register_model_architecture
+from fairseq.fairseq.models.transformer import (
     TransformerDecoder,
     TransformerEncoder,
     TransformerModel,

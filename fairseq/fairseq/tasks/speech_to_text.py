@@ -7,14 +7,14 @@ import logging
 from pathlib import Path
 from argparse import Namespace
 
-from fairseq.data import Dictionary, encoders
-from fairseq.data.audio.speech_to_text_dataset import (
+from fairseq.fairseq.data import Dictionary, encoders
+from fairseq.fairseq.data.audio.speech_to_text_dataset import (
     S2TDataConfig,
     SpeechToTextDataset,
     SpeechToTextDatasetCreator,
     get_features_or_waveform
 )
-from fairseq.tasks import LegacyFairseqTask, register_task
+from fairseq.fairseq.tasks import LegacyFairseqTask, register_task
 
 
 logger = logging.getLogger(__name__)

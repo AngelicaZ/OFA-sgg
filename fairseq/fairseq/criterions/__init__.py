@@ -7,8 +7,8 @@
 import importlib
 import os
 
-from fairseq import registry
-from fairseq.criterions.fairseq_criterion import (  # noqa
+from fairseq.fairseq import registry
+from fairseq.fairseq.criterions.fairseq_criterion import (  # noqa
     FairseqCriterion,
     LegacyFairseqCriterion,
 )
@@ -33,4 +33,4 @@ def build_criterion(cfg: DictConfig, task):
 for file in sorted(os.listdir(os.path.dirname(__file__))):
     if file.endswith(".py") and not file.startswith("_"):
         file_name = file[: file.find(".py")]
-        importlib.import_module("fairseq.criterions." + file_name)
+        importlib.import_module("fairseq.fairseq.criterions." + file_name)

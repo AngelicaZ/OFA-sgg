@@ -9,9 +9,9 @@ from typing import Optional
 
 import torch
 from .dummy_dataset import DummyDataset
-from fairseq.data import Dictionary
-from fairseq.dataclass import FairseqDataclass
-from fairseq.tasks import FairseqTask, register_task
+from fairseq.fairseq.data import Dictionary
+from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.fairseq.tasks import FairseqTask, register_task
 from omegaconf import II
 
 

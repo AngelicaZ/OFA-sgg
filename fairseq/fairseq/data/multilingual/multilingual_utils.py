@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Sequence
 
 import torch
-from fairseq.data import Dictionary
+from fairseq.fairseq.data import Dictionary
 
 
 class EncoderLangtok(Enum):

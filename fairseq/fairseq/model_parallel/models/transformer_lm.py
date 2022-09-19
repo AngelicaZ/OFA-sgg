@@ -4,13 +4,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch.nn as nn
-from fairseq.model_parallel.models.transformer import ModelParallelTransformerDecoder
-from fairseq.models import register_model, register_model_architecture
-from fairseq.models.transformer_lm import TransformerLanguageModel
+from fairseq.fairseq.model_parallel.models.transformer import ModelParallelTransformerDecoder
+from fairseq.fairseq.models import register_model, register_model_architecture
+from fairseq.fairseq.models.transformer_lm import TransformerLanguageModel
 
 
 try:
-    from fairseq.model_parallel.megatron.mpu import VocabParallelEmbedding
+    from fairseq.fairseq.model_parallel.megatron.mpu import VocabParallelEmbedding
 
     has_megatron_submodule = True
 except (ImportError, ModuleNotFoundError):

@@ -4,9 +4,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from fairseq.tasks import register_task
-from fairseq.tasks.speech_to_text import SpeechToTextTask
-from fairseq.tasks.translation import (
+from fairseq.fairseq.tasks import register_task
+from fairseq.fairseq.tasks.speech_to_text import SpeechToTextTask
+from fairseq.fairseq.tasks.translation import (
     TranslationTask, TranslationConfig
 )
 

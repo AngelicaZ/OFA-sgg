@@ -9,10 +9,10 @@ from functools import lru_cache
 
 import numpy as np
 import torch
-from fairseq.dataclass.constants import DATASET_IMPL_CHOICES
-from fairseq.data.fasta_dataset import FastaDataset
-from fairseq.file_io import PathManager
-from fairseq.data.huffman import HuffmanMMapIndexedDataset, HuffmanMMapIndex
+from fairseq.fairseq.dataclass.constants import DATASET_IMPL_CHOICES
+from fairseq.fairseq.data.fasta_dataset import FastaDataset
+from fairseq.fairseq.file_io import PathManager
+from fairseq.fairseq.data.huffman import HuffmanMMapIndexedDataset, HuffmanMMapIndex
 
 from . import FairseqDataset
 
