@@ -17,7 +17,7 @@ restore_file=../../checkpoints/ofa_large.pt
 selected_cols=0,4,2,3
 
 task=refcoco
-arch=ofa_large
+arch=ofa_tiny
 criterion=adjust_label_smoothed_cross_entropy
 label_smoothing=0.1
 lr=3e-5
@@ -35,11 +35,11 @@ max_tgt_length=20
 num_bins=1000
 patch_image_size=512
 
-for max_epoch in {10,}; do
+for max_epoch in 10; do
   echo "max_epoch "${max_epoch}
-  for lr in {3e-5,}; do
+  for lr in 3e-5; do
     echo "lr "${lr}
-    for patch_image_size in {512,}; do
+    for patch_image_size in 512; do
       echo "patch_image_size "${patch_image_size}
 
       log_file=${log_dir}/${max_epoch}"_"${lr}"_"${patch_image_size}".log"

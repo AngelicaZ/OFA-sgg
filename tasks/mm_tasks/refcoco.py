@@ -63,6 +63,7 @@ class RefcocoTask(OFATask):
         else:
             file_path = paths[-1]
         dataset = FileDataset(file_path, self.cfg.selected_cols)
+        # print("dataset: ", dataset)
 
         self.datasets[split] = RefcocoDataset(
             split,

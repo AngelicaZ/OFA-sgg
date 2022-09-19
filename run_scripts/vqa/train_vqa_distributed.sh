@@ -12,7 +12,7 @@ GPUS_PER_NODE=8
 # Number of GPU workers, for single-worker training, please set to 1
 WORKER_CNT=4 
 # The ip address of the rank-0 worker, for single-worker training, please set to localhost
-export MASTER_ADDR=XX.XX.XX.XX
+export MASTER_ADDR=127.0.0.1
 # The port for communication
 export MASTER_PORT=8214
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0

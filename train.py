@@ -27,12 +27,13 @@ logger = logging.getLogger("fairseq_cli.train")
 import numpy as np
 import torch
 from fairseq import (
-    # checkpoint_utils,
     options,
     quantization_utils,
     tasks,
     utils,
 )
+# checkpoint_utils,
+
 from fairseq.data import iterators
 from fairseq.data.plasma_utils import PlasmaStore
 from fairseq.dataclass.configs import FairseqConfig
@@ -92,6 +93,7 @@ def main(cfg: FairseqConfig) -> None:
     assert cfg.criterion, "Please specify criterion to train a model"
 
     # Build model and criterion
+    print("model: ", cfg.model)
     if cfg.distributed_training.ddp_backend == "fully_sharded":
         with fsdp_enable_wrap(cfg.distributed_training):
             model = fsdp_wrap(task.build_model(cfg.model))
@@ -154,6 +156,7 @@ def main(cfg: FairseqConfig) -> None:
 
     # Load the latest checkpoint if one is available and restore the
     # corresponding train iterator
+    # TODO: load checkpoints
     extra_state, epoch_itr = checkpoint_utils.load_checkpoint(
         cfg.checkpoint,
         trainer,
@@ -250,7 +253,8 @@ def train(
     # Initialize data iterator
     itr = epoch_itr.next_epoch_itr(
         fix_batches_to_gpus=cfg.distributed_training.fix_batches_to_gpus,
-        shuffle=(epoch_itr.next_epoch_idx > cfg.dataset.curriculum),
+        # shuffle=(epoch_itr.next_epoch_idx > cfg.dataset.curriculum),
+        shuffle=True
     )
     update_freq = (
         cfg.optimization.update_freq[epoch_itr.epoch - 1]
@@ -437,7 +441,7 @@ def validate(
 
         # Initialize data iterator
         itr = trainer.get_valid_iterator(subset).next_epoch_itr(
-            shuffle=False, set_dataset_epoch=False  # use a fixed valid set
+            shuffle=True, set_dataset_epoch=False  # use a fixed valid set
         )
         if cfg.common.tpu:
             itr = utils.tpu_data_loader(itr)

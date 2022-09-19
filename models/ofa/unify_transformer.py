@@ -1281,7 +1281,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
             tgt_pos_embed = tgt_pos_embed[:, -1:, :]
 
         # embed tokens and positions
-        x = self.embed_scale * self.embed_tokens(prev_output_tokens)
+        x = self.embed_scale * self.embed_tokens(prev_output_tokens.long())
 
         if self.quant_noise is not None:
             x = self.quant_noise(x)

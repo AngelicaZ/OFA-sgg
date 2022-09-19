@@ -15,6 +15,9 @@ import torch.distributed as dist
 from data import data_utils
 from tasks.nlg_tasks.gigaword import fix_tokenization
 
+from data.mm_data.sg_raw import GQASceneDataset, load_json
+from data.mm_data.sgg_VG_dataset import VGDatasetReader
+
 
 def get_symbols_to_strip_from_output(generator):
     if hasattr(generator, "symbols_to_strip_from_output"):
@@ -39,6 +42,61 @@ def eval_caption(task, generator, models, sample, **kwargs):
     for i, sample_id in enumerate(sample["id"].tolist()):
         detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, task.bpe, generator)
         results.append({"image_id": str(sample_id), "caption": detok_hypo_str.translate(transtab).strip()})
+    return results, None
+
+def eval_sgg(task, generator, models, sample, **kwargs):
+    hypos = task.inference_step(generator, models, sample)
+    results = dict()
+
+    if task.cfg.dataset_choose == 'GQA':
+        scenegraphs_json_path = task.cfg.data
+        scenegraphs_json = load_json(scenegraphs_json_path)
+        image_dir = task.cfg.img_dir
+        for i, sample_id in enumerate(sample["id"].tolist()):
+            detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, task.bpe, generator)
+            results[sample_id] = detok_hypo_str.replace('&&', ' ')
+            img_name = sample_id + ".jpg"
+            image_path = image_dir + img_name
+            print("image path: ", image_path)
+            scenegraph = scenegraphs_json[sample_id]
+            gt_sentence, _ = data_utils.SceneGraph2SeqV2(scenegraph)
+            print("pred_sentence:", results[sample_id])
+            print("gt_sentence: ", gt_sentence)
+            print("\n")
+    
+    elif task.cfg.dataset_choose == 'VG':
+        img_dir = task.cfg.img_dir
+        roidb_file = task.cfg.data
+        dict_file = task.cfg.dict_file
+        image_file = task.cfg.image_file
+        tgt_seq_len = task.cfg.tgt_seq_len
+        split = 'test'
+        # print("split: ", split)
+
+        dataset = VGDatasetReader(
+            split, 
+            img_dir, 
+            roidb_file, 
+            dict_file, 
+            image_file,
+            num_im=-1,
+            num_val_im=5000,
+            required_len=tgt_seq_len
+        )
+        for i, sample_id in enumerate(sample["id"].tolist()):
+            index = sample["idx"].tolist()[i]
+            detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, task.bpe, generator)
+            results[sample_id] = detok_hypo_str.replace('&&', ' ')
+            img_name = sample_id + ".jpg"
+            image_path = img_dir + img_name
+            print("image path: ", image_path)
+            print("pred_sentence:", results[sample_id])
+            img, target_seq, imageid, src_text, _ = dataset[index]
+            print("gt_sentence: ", target_seq)
+            print("\n")
+            
+    else:
+        raise NotImplementedError
     return results, None
 
 
@@ -316,6 +374,8 @@ def eval_step(task, generator, models, sample, **kwargs):
         return eval_gigaword(task, generator, models, sample, **kwargs)
     elif task.cfg._name == 'image_classify':
         return eval_image_classify(task, generator, models, sample, **kwargs)
+    elif task.cfg._name == 'sgg':
+        return eval_sgg(task, generator, models, sample, **kwargs)
     else:
         raise NotImplementedError
 

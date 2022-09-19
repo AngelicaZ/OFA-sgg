@@ -97,6 +97,7 @@ def main(cfg: DictConfig, **kwargs):
         model.prepare_for_inference_(cfg)
 
     # Load dataset (possibly sharded)
+    # TODO: num batches
     itr = task.get_batch_iterator(
         dataset=task.dataset(cfg.dataset.gen_subset),
         max_tokens=cfg.dataset.max_tokens,
@@ -111,7 +112,7 @@ def main(cfg: DictConfig, **kwargs):
         shard_id=cfg.distributed_training.distributed_rank,
         num_workers=cfg.dataset.num_workers,
         data_buffer_size=cfg.dataset.data_buffer_size,
-    ).next_epoch_itr(shuffle=False)
+    ).next_epoch_itr(shuffle=True)
     progress = progress_bar.progress_bar(
         itr,
         log_format=cfg.common.log_format,

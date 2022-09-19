@@ -664,7 +664,7 @@ class Trainer(object):
             disable_iterator_cache=disable_iterator_cache,
         )
         self.reset_dummy_batch(batch_iterator.first_batch)
-        batch_iterator.dataset.dataset._seek()
+        # batch_iterator.dataset.dataset._seek()
         return batch_iterator
 
     def get_valid_iterator(
@@ -673,7 +673,7 @@ class Trainer(object):
         disable_iterator_cache=False,
     ):
         """Return an EpochBatchIterator over given validation subset for a given epoch."""
-        self.task.dataset(subset).dataset._seek()
+        # self.task.dataset(subset).dataset._seek()
         batch_iterator = self.task.get_batch_iterator(
             dataset=self.task.dataset(subset),
             max_tokens=self.cfg.dataset.max_tokens_valid,
@@ -695,7 +695,7 @@ class Trainer(object):
             disable_iterator_cache=disable_iterator_cache,
         )
         self.reset_dummy_batch(batch_iterator.first_batch)
-        batch_iterator.dataset.dataset._seek()
+        # batch_iterator.dataset.dataset._seek()
         return batch_iterator
 
     def begin_epoch(self, epoch):

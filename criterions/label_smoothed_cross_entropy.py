@@ -4,6 +4,7 @@
 # found in the LICENSE file in the root directory.
 
 import math
+import pdb
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -87,6 +88,7 @@ def label_smoothed_nll_loss(
 ):
     if target.dim() == lprobs.dim() - 1:
         target = target.unsqueeze(-1)
+    target = target.type(torch.int64)
     nll_loss = -lprobs.gather(dim=-1, index=target).squeeze(-1)
     if constraint_masks is not None:
         smooth_loss = -lprobs.masked_fill(~constraint_masks, 0).sum(dim=-1, keepdim=True).squeeze(-1)
@@ -173,6 +175,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         2) the sample size, which is used as the denominator for the gradient
         3) logging outputs to display while training
         """
+        # sample is dict
         if isinstance(sample, list):
             if self.sample_patch_num > 0:
                 sample[0]['net_input']['sample_patch_num'] = self.sample_patch_num
@@ -196,7 +199,26 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         if self.use_rdrop:
             construct_rdrop_sample(sample)
 
-        net_output = model(**sample["net_input"])
+        net_output = model(**sample["net_input"]) 
+        '''
+        sample["net_input"]: dict, 
+            keys: ['src_tokens', 'src_lengths', 'patch_images', 'patch_masks', 'prev_output_tokens']
+        sample["target"]:                   [4, 628]     or     [4, 755]    or    [4, 576]...
+
+        net_output: tuple, len=2
+        net_output[0]:                      [4, 628, 59457] or [4, 755, 59457] or [4, 576, 59457]...
+        net_output[1]: dict, 
+            keys: ['attn', 'inner_states']
+        net_output[1]['attn']: list, len=1, [4, 628, 1029] or [4, 755, 1029] or [4, 576, 1029]...
+        net_output[1]['inner_states']: list, len=5
+                                       [0]: [628, 4, 256] or [755, 4, 256] or [576, 4, 256]...
+                                       [1]: same as [0]
+                                       [2]: same as [0]
+                                       [3]: same as [0]
+                                       [4]: same as [0]
+        '''
+        # print("target shape just before input to model: ", sample["target"].shape)
+        
         loss, nll_loss, ntokens = self.compute_loss(model, net_output, sample, update_num, reduce=reduce)
         sample_size = (
             sample["target"].size(0) if self.sentence_avg else ntokens
@@ -223,7 +245,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         if self.constraint_start is not None and self.constraint_end is not None:
             net_output[0][:, :, 4:self.constraint_start] = -math.inf
             net_output[0][:, :, self.constraint_end:] = -math.inf
-        lprobs = model.get_normalized_probs(net_output, log_probs=True) * conf
+        lprobs = model.get_normalized_probs(net_output, log_probs=True) * conf # log softmax to the -1 dim of net_output[0]
         target = model.get_targets(sample, net_output)
         if self.ignore_prefix_size > 0:
             lprobs = lprobs[:, self.ignore_prefix_size :, :].contiguous()
@@ -232,6 +254,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
                 constraint_masks = constraint_masks[:, self.ignore_prefix_size :, :].contiguous()
         if self.ignore_eos:
             bsz, seq_len, embed_dim = lprobs.size()
+            # print("bsz, seq_len, embed_dim: ", lprobs.shape)
             eos_indices = target.eq(self.task.tgt_dict.eos())
             lprobs = lprobs[~eos_indices].reshape(bsz, seq_len-1, embed_dim)
             target = target[~eos_indices].reshape(bsz, seq_len-1)
@@ -264,7 +287,9 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         return loss, nll_loss, ntokens
 
     def compute_accuracy(self, model, net_output, sample):
-        lprobs, target = self.get_lprobs_and_target(model, net_output, sample)
+        lprobs, target, _ = self.get_lprobs_and_target(model, net_output, sample)
+        # lprobs shape:  [1852, 59457]
+        # target shape:  [1852]
         mask = target.ne(self.padding_idx)
         n_correct = torch.sum(
             lprobs.argmax(1).masked_select(mask).eq(target.masked_select(mask))

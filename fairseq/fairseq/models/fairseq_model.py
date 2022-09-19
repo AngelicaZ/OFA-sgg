@@ -63,7 +63,7 @@ class BaseFairseqModel(nn.Module):
         self,
         net_output: Tuple[Tensor, Optional[Dict[str, List[Optional[Tensor]]]]],
         log_probs: bool,
-        sample: Optional[Dict[str, Tensor]] = None,
+        sample: Optional[Dict[str, Tensor]] = None, 
     ):
         """Get normalized probabilities (or log probs) from a net's output."""
         return self.get_normalized_probs_scriptable(net_output, log_probs, sample)

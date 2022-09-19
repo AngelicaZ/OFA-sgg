@@ -361,6 +361,11 @@ class SequenceGenerator(nn.Module):
                     zero_shot=self.zero_shot,
                     prefix_tokens=prefix_tokens
                 )
+            # lprobs shape: [20, 59457], [15, 59457], [10, 59457], [5, 59457]
+            # print("step: ", step)  # 0~3, 0~83
+            # print("max length: ", max_len) # 1100
+            # print("lprobs shape: ", lprobs.shape)
+
 
             if self.lm_model is not None:
                 lm_out = self.lm_model(tokens[:, : step + 1])
@@ -592,6 +597,9 @@ class SequenceGenerator(nn.Module):
             )
             _, sorted_scores_indices = torch.sort(scores, descending=True)
             finalized[sent] = [finalized[sent][ssi] for ssi in sorted_scores_indices]
+
+            # Telling TorchScript that this finalized[sent] is a List[Dict[str, Tensor]]
+            # instead of default type.
             finalized[sent] = torch.jit.annotate(
                 List[Dict[str, Tensor]], finalized[sent]
             )
@@ -695,7 +703,8 @@ class SequenceGenerator(nn.Module):
                 cum_unfin.append(prev)
         cum_fin_tensor = torch.tensor(cum_unfin, dtype=torch.int).to(bbsz_idx)
 
-        unfin_idx = bbsz_idx // beam_size
+        # unfin_idx = bbsz_idx // beam_size
+        unfin_idx = torch.div(bbsz_idx, beam_size, rounding_mode='floor')
         sent = unfin_idx + torch.index_select(cum_fin_tensor, 0, unfin_idx)
 
         # Create a set of "{sent}{unfin_idx}", where

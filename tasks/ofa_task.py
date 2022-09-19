@@ -136,8 +136,11 @@ class OFATask(FairseqTask):
             [j for j in range(i, min(i + max_sentences, len(dataset)))]
             for i in range(0, len(dataset), max_sentences)
         ]
-        total_row_count = dataset.dataset.get_total_row_count()
-        num_batches = math.ceil(math.ceil(total_row_count / num_shards) / max_sentences)
+        try:
+            total_row_count = dataset.dataset.get_total_row_count()
+            num_batches = math.ceil(math.ceil(total_row_count / num_shards) / max_sentences)
+        except:
+            num_batches = math.ceil(len(dataset) / max_sentences)
         if len(batch_sampler) < num_batches:
             batch_sampler.append([])
 
@@ -218,6 +221,7 @@ class OFATask(FairseqTask):
         from models.sequence_generator import SequenceGenerator
 
         # Choose search strategy. Defaults to Beam Search.
+        # getattr returns the value of the named attribute of an object of a class
         sampling = getattr(args, "sampling", False)
         sampling_topk = getattr(args, "sampling_topk", -1)
         sampling_topp = getattr(args, "sampling_topp", -1.0)
