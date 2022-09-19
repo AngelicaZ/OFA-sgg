@@ -19,7 +19,7 @@ export MASTER_PORT=8214
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 export RANK=0 
 
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=3
 
 dataset_choose='GQA'
 
@@ -41,9 +41,9 @@ log_dir=./sgg_logs/GQA
 save_dir=./sgg_checkpoints/GQA
 mkdir -p $log_dir $save_dir
 
-bpe_dir=/home/chenyu/scene_graph_generation/OFA/utils/BPE
+bpe_dir=../../utils/BPE
 bpe='gpt2'
-user_dir=/home/chenyu/scene_graph_generation/OFA/ofa_module
+user_dir=../../ofa_module
 
 task=sgg
 arch=ofa_tiny
