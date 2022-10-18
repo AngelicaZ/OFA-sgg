@@ -7,11 +7,11 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from fairseq.fairseq import utils
-from fairseq.fairseq.dataclass.utils import gen_parser_from_dataclass
-from fairseq.fairseq.distributed import fsdp_wrap
-from fairseq.fairseq.models import FairseqEncoderDecoderModel
-from fairseq.fairseq.models.transformer import (
+from fairseq import utils
+from fairseq.dataclass.utils import gen_parser_from_dataclass
+from fairseq.distributed import fsdp_wrap
+from fairseq.models import FairseqEncoderDecoderModel
+from fairseq.models.transformer import (
     TransformerEncoderBase,
     TransformerDecoderBase,
     TransformerConfig,

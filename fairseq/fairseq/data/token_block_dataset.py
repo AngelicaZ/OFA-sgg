@@ -5,8 +5,8 @@
 
 import numpy as np
 import torch
-from fairseq.fairseq.data import FairseqDataset, plasma_utils
-from fairseq.fairseq.data.indexed_dataset import best_fitting_int_dtype
+from fairseq.data import FairseqDataset, plasma_utils
+from fairseq.data.indexed_dataset import best_fitting_int_dtype
 from typing import Tuple
 
 

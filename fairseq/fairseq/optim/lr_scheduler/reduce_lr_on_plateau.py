@@ -9,8 +9,8 @@ from typing import List
 import torch.optim.lr_scheduler
 from omegaconf import II
 
-from fairseq.fairseq.dataclass import FairseqDataclass
-from fairseq.fairseq.optim.lr_scheduler import FairseqLRScheduler, register_lr_scheduler
+from fairseq.dataclass import FairseqDataclass
+from fairseq.optim.lr_scheduler import FairseqLRScheduler, register_lr_scheduler
 
 
 @dataclass

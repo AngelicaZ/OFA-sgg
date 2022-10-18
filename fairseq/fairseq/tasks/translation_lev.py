@@ -5,12 +5,12 @@
 
 from dataclasses import dataclass, field
 import torch
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import LanguagePairDataset
-from fairseq.fairseq.dataclass import ChoiceEnum
-from fairseq.fairseq.tasks import register_task
-from fairseq.fairseq.tasks.translation import TranslationConfig, TranslationTask, load_langpair_dataset
-from fairseq.fairseq.utils import new_arange
+from fairseq import utils
+from fairseq.data import LanguagePairDataset
+from fairseq.dataclass import ChoiceEnum
+from fairseq.tasks import register_task
+from fairseq.tasks.translation import TranslationConfig, TranslationTask, load_langpair_dataset
+from fairseq.utils import new_arange
 
 
 NOISE_CHOICES = ChoiceEnum(["random_delete", "random_mask", "no_noise", "full_mask"])

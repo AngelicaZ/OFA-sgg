@@ -10,15 +10,15 @@ from collections import OrderedDict
 from argparse import ArgumentError
 
 import torch
-from fairseq.fairseq import metrics, options, utils
-from fairseq.fairseq.data import (
+from fairseq import metrics, options, utils
+from fairseq.data import (
     Dictionary,
     LanguagePairDataset,
     RoundRobinZipDatasets,
     TransformEosLangPairDataset,
 )
-from fairseq.fairseq.models import FairseqMultiModel
-from fairseq.fairseq.tasks.translation import load_langpair_dataset
+from fairseq.models import FairseqMultiModel
+from fairseq.tasks.translation import load_langpair_dataset
 
 from . import LegacyFairseqTask, register_task
 

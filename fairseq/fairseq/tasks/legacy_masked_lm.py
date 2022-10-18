@@ -8,12 +8,12 @@ import logging
 import os
 
 import numpy as np
-from fairseq.fairseq import tokenizer, utils
-from fairseq.fairseq.data import ConcatDataset, Dictionary, data_utils, indexed_dataset
-from fairseq.fairseq.data.legacy.block_pair_dataset import BlockPairDataset
-from fairseq.fairseq.data.legacy.masked_lm_dataset import MaskedLMDataset
-from fairseq.fairseq.data.legacy.masked_lm_dictionary import BertDictionary
-from fairseq.fairseq.tasks import LegacyFairseqTask, register_task
+from fairseq import tokenizer, utils
+from fairseq.data import ConcatDataset, Dictionary, data_utils, indexed_dataset
+from fairseq.data.legacy.block_pair_dataset import BlockPairDataset
+from fairseq.data.legacy.masked_lm_dataset import MaskedLMDataset
+from fairseq.data.legacy.masked_lm_dictionary import BertDictionary
+from fairseq.tasks import LegacyFairseqTask, register_task
 
 
 logger = logging.getLogger(__name__)

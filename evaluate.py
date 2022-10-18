@@ -10,10 +10,10 @@ import sys
 
 import numpy as np
 import torch
-from fairseq import distributed_utils, options, tasks, utils
-from fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.logging import progress_bar
-from fairseq.utils import reset_logging
+from fairseq.fairseq import distributed_utils, options, tasks, utils
+from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.fairseq.logging import progress_bar
+from fairseq.fairseq.utils import reset_logging
 from omegaconf import DictConfig
 
 from utils import checkpoint_utils
@@ -133,7 +133,10 @@ def main(cfg: DictConfig, **kwargs):
         sample = utils.apply_to_sample(apply_half, sample) if cfg.common.fp16 else sample
         with torch.no_grad():
             result, scores = eval_step(task, generator, models, sample, **kwargs)
-        results += result
+            # print("raw result: ", result)
+        # results += result
+        results.append(result)
+        # print("results: ", results)
         score_sum += sum(scores) if scores is not None else 0
         score_cnt += len(scores) if scores is not None else 0
         progress.log({"sentences": sample["nsentences"]})

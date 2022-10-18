@@ -8,15 +8,15 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.fairseq import utils
-from fairseq.fairseq.models import (
+from fairseq import utils
+from fairseq.models import (
     FairseqEncoder,
     FairseqEncoderDecoderModel,
     FairseqIncrementalDecoder,
     register_model,
     register_model_architecture,
 )
-from fairseq.fairseq.modules import (
+from fairseq.modules import (
     AdaptiveSoftmax,
     DynamicConv,
     FairseqDropout,
@@ -25,7 +25,7 @@ from fairseq.fairseq.modules import (
     MultiheadAttention,
     PositionalEmbedding,
 )
-from fairseq.fairseq.utils import safe_hasattr
+from fairseq.utils import safe_hasattr
 
 
 @register_model("lightconv")

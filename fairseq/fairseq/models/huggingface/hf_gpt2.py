@@ -9,7 +9,7 @@ import sys
 from typing import Dict, List, Optional
 
 import torch
-from fairseq.fairseq.models import (
+from fairseq.models import (
     FairseqIncrementalDecoder,
     FairseqLanguageModel,
     register_model,

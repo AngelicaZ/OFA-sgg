@@ -7,11 +7,12 @@ from tqdm import tqdm
 from functools import reduce
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+import random
 
-from maskrcnn_benchmark.data import get_dataset_statistics
-from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from maskrcnn_benchmark.utils.miscellaneous import intersect_2d, argsort_desc, bbox_overlaps
+# from .utils import get_dataset_statistics
+# from maskrcnn_benchmark.structures.bounding_box import BoxList
+# from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+# from maskrcnn_benchmark.utils.miscellaneous import intersect_2d, argsort_desc, bbox_overlaps
 from .sgg_eval import SGRecall, SGNoGraphConstraintRecall, SGZeroShotRecall, SGNGZeroShotRecall, SGPairAccuracy, SGMeanRecall, SGNGMeanRecall, SGAccumulateRecall
 
 def do_vg_evaluation(
@@ -23,32 +24,34 @@ def do_vg_evaluation(
     iou_types,
 ):
     # get zeroshot triplet
-    zeroshot_triplet = torch.load("maskrcnn_benchmark/data/datasets/evaluation/vg/zeroshot_triplet.pytorch", map_location=torch.device("cpu")).long().numpy()
+    zeroshot_triplet = torch.load("evaluation/sgg/VG/zeroshot_triplet.pytorch", map_location=torch.device("cpu")).long().numpy()
 
-    attribute_on = cfg.MODEL.ATTRIBUTE_ON
-    num_attributes = cfg.MODEL.ROI_ATTRIBUTE_HEAD.NUM_ATTRIBUTES
+    attribute_on = cfg.MODEL.ATTRIBUTE_ON # false
+    num_attributes = cfg.MODEL.ROI_ATTRIBUTE_HEAD.NUM_ATTRIBUTES # 201
     # extract evaluation settings from cfg
-    # mode = cfg.TEST.RELATION.EVAL_MODE
-    if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX:
-        if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL:
+    if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX: # True
+        if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL: # False
             mode = 'predcls'
         else:
             mode = 'sgcls'
     else:
         mode = 'sgdet'
 
-    num_rel_category = cfg.MODEL.ROI_RELATION_HEAD.NUM_CLASSES
-    multiple_preds = cfg.TEST.RELATION.MULTIPLE_PREDS
-    iou_thres = cfg.TEST.RELATION.IOU_THRESHOLD
+    num_rel_category = cfg.MODEL.ROI_RELATION_HEAD.NUM_CLASSES # 51
+    multiple_preds = cfg.TEST.RELATION.MULTIPLE_PREDS # False
+    iou_thres = cfg.TEST.RELATION.IOU_THRESHOLD # 0.5
     assert mode in {'predcls', 'sgdet', 'sgcls', 'phrdet', 'preddet'}
 
     groundtruths = []
-    for image_id, prediction in enumerate(predictions):
+    for image_id, prediction in predictions.items():
         img_info = dataset.get_img_info(image_id)
         image_width = img_info["width"]
         image_height = img_info["height"]
-        # recover original size which is before transform
-        predictions[image_id] = prediction.resize((image_width, image_height))
+        # # recover original size which is before transform
+        # predictions[image_id] = prediction.resize((image_width, image_height))
+
+        # prediction is a sequence
+        predictions[image_id] = prediction
 
         gt = dataset.get_groundtruth(image_id, evaluation=True)
         groundtruths.append(gt)
@@ -85,15 +88,18 @@ def do_vg_evaluation(
 
         # format predictions to coco-like
         cocolike_predictions = []
-        for image_id, prediction in enumerate(predictions):
-            box = prediction.convert('xywh').bbox.detach().cpu().numpy() # xywh
-            score = prediction.get_field('pred_scores').detach().cpu().numpy() # (#objs,)
-            label = prediction.get_field('pred_labels').detach().cpu().numpy() # (#objs,)
+        for image_id, prediction in predictions.items():
+            # box = prediction.convert('xywh').bbox.detach().cpu().numpy() # xywh
+            # score = prediction.get_field('pred_scores').detach().cpu().numpy() # (#objs,)
+            # label = prediction.get_field('pred_labels').detach().cpu().numpy() # (#objs,)
+
+            box, label, score = prepare_prediction(prediction, dataset)
+
             # for predcls, we set label and score to groundtruth
-            if mode == 'predcls':
-                label = prediction.get_field('labels').detach().cpu().numpy()
-                score = np.ones(label.shape[0])
-                assert len(label) == len(box)
+            # if mode == 'predcls':
+            #     label = prediction.get_field('labels').detach().cpu().numpy()
+            #     score = np.ones(label.shape[0])
+            #     assert len(label) == len(box)
             image_id = np.asarray([image_id]*len(box))
             cocolike_predictions.append(
                 np.column_stack((image_id, box, score, label))
@@ -192,6 +198,93 @@ def do_vg_evaluation(
     else:
         return -1
 
+def prepare_prediction(prediction, dataset, pred_mode=0):
+
+    '''
+    prediction seq example: 
+    Cat x y x y is on mat x y x y, inside house x y x y.
+
+    '''
+
+    box_raw = []
+    label = []
+    relation_raw = []
+    for j in range(len(prediction)):
+        if '<' in prediction[j] and (prediction[j] != '<unk>' or '<mask>'):
+            try:
+                bbox_half_pred = prediction[j].split('_')[1]
+                bbox_val_pred = int(bbox_half_pred.strip('>'))
+                box_raw.append(bbox_val_pred)
+            except:
+                print("Unexpected bbox from lropbs: ", prediction[j])
+        # label
+        elif j != len(prediction)-1 and ('<' in prediction[j+1] and (prediction[j+1] != '<unk>' or '<mask>')):
+            l_idx = dataset.class_to_ind[prediction[j]]
+            label.append(l_idx)
+        
+        # conjunctions
+        elif prediction[j] == 'is' or ',' or '.':
+            continue
+            
+        # relations
+        else:
+            r_raw = prediction[j]
+            relation_raw.append(r_raw)
+    
+
+    # bbox
+    num_box = len(box_raw)/4
+    box = np.zeros(num_box, 4)
+    for i in range(num_box):
+        box[i, :] = box_raw[4*i, 4*i+3]
+    
+    # relation
+    relation  = []
+    flag = [0, 0, 0]
+    for i in range(len(relation_raw)):
+        if flag == [1, 0, 0]:
+            continue
+        elif flag == [1, 1, 0]:
+            flag = [1, 0, 0]
+            continue
+        elif flag == [1, 1, 1]:
+            flag = [1, 1, 0]
+            continue
+
+        if relation_raw[i] in dataset.ind_to_predicates:
+            relation.append(dataset.ind_to_predicates[relation_raw[i]])
+
+        elif i != len(relation_raw)-1 and ((relation_raw[i]+' '+relation_raw[i+1]) in dataset.ind_to_predicates):
+            r = relation_raw[i]+' '+relation_raw[i+1]
+            relation.append(dataset.ind_to_predicates[r])
+            flag = [1, 0, 0]
+
+        elif i != len(relation_raw)-2 and ((relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]) in dataset.ind_to_predicates):
+            r = relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]
+            relation.append(dataset.ind_to_predicates[r])
+            flag = [1, 1, 0]
+
+        elif i != len(relation_raw)-3 and ((relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]+' '+relation_raw[i+3]) in dataset.ind_to_predicates):
+            r = relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]+' '+relation_raw[i+3]
+            relation.append(dataset.ind_to_predicates[r])
+            flag = [1, 1, 1]
+
+        else:
+            print("Not find relation: ", relation_raw[i])
+
+    # TODO: convert to relation tuple
+
+
+
+    # scores are all 1
+    score = np.ones(box.shape[0])
+
+    if pred_mode == 1:
+        box = box.tolist()
+        label = label.tolist()
+    
+    return box, label, score, relation
+
 
 def save_output(output_folder, groundtruths, predictions, dataset):
     if output_folder:
@@ -209,7 +302,7 @@ def save_output(output_folder, groundtruths, predictions, dataset):
                 ]
             prediction = [
                 [b[0], b[1], b[2], b[3], dataset.categories[l]] # xyxy, str
-                for b, l in zip(prediction.bbox.tolist(), prediction.get_field('pred_labels').tolist())
+                for b, l, s, r in zip(prepare_prediction(prediction, dataset, pred_mode=1))
                 ]
             visual_info.append({
                 'img_file': img_file,
@@ -241,14 +334,23 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container['gt_boxes'] = groundtruth.convert('xyxy').bbox.detach().cpu().numpy()                   # (#gt_objs, 4)
     local_container['gt_classes'] = groundtruth.get_field('labels').long().detach().cpu().numpy()           # (#gt_objs, )
 
+
+    box, label, score, relation = prepare_prediction(prediction)
+
     # about relations
-    local_container['pred_rel_inds'] = prediction.get_field('rel_pair_idxs').long().detach().cpu().numpy()  # (#pred_rels, 2)
-    local_container['rel_scores'] = prediction.get_field('pred_rel_scores').detach().cpu().numpy()          # (#pred_rels, num_pred_class)
+    # local_container['pred_rel_inds'] = prediction.get_field('rel_pair_idxs').long().detach().cpu().numpy()  # (#pred_rels, 2)
+    # local_container['rel_scores'] = prediction.get_field('pred_rel_scores').detach().cpu().numpy()          # (#pred_rels, num_pred_class)
+    local_container['pred_rel_inds'] = relation
+    local_container['rel_scores'] = np.ones(len(relation))
 
     # about objects
-    local_container['pred_boxes'] = prediction.convert('xyxy').bbox.detach().cpu().numpy()                  # (#pred_objs, 4)
-    local_container['pred_classes'] = prediction.get_field('pred_labels').long().detach().cpu().numpy()     # (#pred_objs, )
-    local_container['obj_scores'] = prediction.get_field('pred_scores').detach().cpu().numpy()              # (#pred_objs, )
+    # local_container['pred_boxes'] = prediction.convert('xyxy').bbox.detach().cpu().numpy()                  # (#pred_objs, 4)
+    # local_container['pred_classes'] = prediction.get_field('pred_labels').long().detach().cpu().numpy()     # (#pred_objs, )
+    # local_container['obj_scores'] = prediction.get_field('pred_scores').detach().cpu().numpy()              # (#pred_objs, )
+    local_container['pred_boxes'] = box
+    local_container['pred_classes'] = label
+    local_container['obj_scores'] = score
+
     
 
     # to calculate accuracy, only consider those gt pairs

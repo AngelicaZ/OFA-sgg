@@ -9,8 +9,8 @@ from collections import namedtuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.fairseq import options, utils
-from fairseq.fairseq.modules import (
+from fairseq import options, utils
+from fairseq.modules import (
     AdaptiveSoftmax,
     LayerNorm,
     MultiheadAttention,

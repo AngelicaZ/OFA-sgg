@@ -5,7 +5,7 @@
 
 import torch
 import torch.nn as nn
-from fairseq.fairseq.modules import Fp32GroupNorm
+from fairseq.modules import Fp32GroupNorm
 
 
 class KmeansVectorQuantizer(nn.Module):

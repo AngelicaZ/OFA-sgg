@@ -17,4 +17,4 @@ def build_ema(model, cfg, device):
 for file in sorted(os.listdir(os.path.dirname(__file__))):
     if file.endswith(".py") and not file.startswith("_"):
         file_name = file[: file.find(".py")]
-        importlib.import_module("fairseq.fairseq.models.ema." + file_name)
+        importlib.import_module("fairseq.models.ema." + file_name)

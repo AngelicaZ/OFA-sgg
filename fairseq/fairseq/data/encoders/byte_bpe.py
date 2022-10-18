@@ -6,15 +6,15 @@
 
 from dataclasses import dataclass, field
 
-from fairseq.fairseq import file_utils
-from fairseq.fairseq.data.encoders import register_bpe
-from fairseq.fairseq.data.encoders.byte_utils import (
+from fairseq import file_utils
+from fairseq.data.encoders import register_bpe
+from fairseq.data.encoders.byte_utils import (
     SPACE,
     SPACE_ESCAPE,
     byte_encode,
     smart_byte_decode,
 )
-from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.dataclass import FairseqDataclass
 
 
 @dataclass

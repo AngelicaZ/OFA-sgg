@@ -8,7 +8,7 @@ import logging
 import math
 
 import numpy as np
-from fairseq.fairseq.data import SampledMultiDataset
+from fairseq.data import SampledMultiDataset
 
 from .sampled_multi_dataset import CollateFormat, default_virtual_size_func
 

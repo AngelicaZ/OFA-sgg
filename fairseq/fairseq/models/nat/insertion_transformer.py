@@ -6,16 +6,16 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from fairseq.fairseq.models import register_model, register_model_architecture
-from fairseq.fairseq.models.nat import (
+from fairseq.models import register_model, register_model_architecture
+from fairseq.models.nat import (
     FairseqNATModel,
     LevenshteinTransformerDecoder,
     LevenshteinTransformerModel,
     ensemble_decoder,
 )
-from fairseq.fairseq.models.transformer import Linear
-from fairseq.fairseq.modules.transformer_sentence_encoder import init_bert_params
-from fairseq.fairseq.utils import new_arange
+from fairseq.models.transformer import Linear
+from fairseq.modules.transformer_sentence_encoder import init_bert_params
+from fairseq.utils import new_arange
 
 
 class NegativeDistanceScore(object):

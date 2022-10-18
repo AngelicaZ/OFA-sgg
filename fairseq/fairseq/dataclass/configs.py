@@ -9,7 +9,7 @@ from typing import Any, List, Optional
 
 import torch
 
-from fairseq.fairseq.dataclass.constants import (
+from fairseq.dataclass.constants import (
     DATASET_IMPL_CHOICES,
     DDP_BACKEND_CHOICES,
     DDP_COMM_HOOK_CHOICES,

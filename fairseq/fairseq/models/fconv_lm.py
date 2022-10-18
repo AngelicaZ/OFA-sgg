@@ -3,14 +3,14 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from fairseq.fairseq import utils
-from fairseq.fairseq.models import (
+from fairseq import utils
+from fairseq.models import (
     FairseqLanguageModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.fairseq.models.fconv import FConvDecoder
-from fairseq.fairseq.utils import safe_hasattr
+from fairseq.models.fconv import FConvDecoder
+from fairseq.utils import safe_hasattr
 
 
 @register_model("fconv_lm")

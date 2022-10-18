@@ -49,7 +49,7 @@ for file in os.listdir(transforms_dir):
         and (file.endswith(".py") or os.path.isdir(path))
     ):
         name = file[: file.find(".py")] if file.endswith(".py") else file
-        importlib.import_module("fairseq.fairseq.data.audio.feature_transforms." + name)
+        importlib.import_module("fairseq.data.audio.feature_transforms." + name)
 
 
 class CompositeAudioFeatureTransform(AudioFeatureTransform):

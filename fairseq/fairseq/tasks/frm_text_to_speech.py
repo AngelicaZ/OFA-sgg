@@ -5,9 +5,9 @@
 
 import logging
 
-from fairseq.fairseq.data.audio.frm_text_to_speech_dataset import FrmTextToSpeechDatasetCreator
-from fairseq.fairseq.tasks import register_task
-from fairseq.fairseq.tasks.text_to_speech import TextToSpeechTask
+from fairseq.data.audio.frm_text_to_speech_dataset import FrmTextToSpeechDatasetCreator
+from fairseq.tasks import register_task
+from fairseq.tasks.text_to_speech import TextToSpeechTask
 
 
 logging.basicConfig(

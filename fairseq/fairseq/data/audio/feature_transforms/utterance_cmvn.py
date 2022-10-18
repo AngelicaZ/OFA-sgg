@@ -1,5 +1,5 @@
 import numpy as np
-from fairseq.fairseq.data.audio.feature_transforms import (
+from fairseq.data.audio.feature_transforms import (
     AudioFeatureTransform,
     register_audio_feature_transform,
 )

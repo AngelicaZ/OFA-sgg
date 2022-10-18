@@ -6,8 +6,8 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from fairseq.fairseq.data.encoders import register_bpe
-from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq.data.encoders import register_bpe
+from fairseq.dataclass import FairseqDataclass
 
 
 @dataclass

@@ -14,8 +14,8 @@ from argparse import Namespace
 from data.file_dataset import FileDataset
 
 import torch
-from fairseq.fairseq import metrics
-from fairseq.fairseq.tasks import register_task
+from fairseq import metrics
+from fairseq.tasks import register_task
 
 from models import search
 from data.mm_data.vqa_gen_dataset import VqaGenDataset

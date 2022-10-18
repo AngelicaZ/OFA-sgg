@@ -11,17 +11,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 from dataclasses import dataclass, field
-from fairseq.fairseq import utils
-from fairseq.fairseq.data.data_utils import compute_mask_indices
-from fairseq.fairseq.data.dictionary import Dictionary
-from fairseq.fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.fairseq.models import BaseFairseqModel, register_model
-from fairseq.fairseq.models.wav2vec.wav2vec2 import (
+from fairseq import utils
+from fairseq.data.data_utils import compute_mask_indices
+from fairseq.data.dictionary import Dictionary
+from fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from fairseq.models import BaseFairseqModel, register_model
+from fairseq.models.wav2vec.wav2vec2 import (
     ConvFeatureExtractionModel,
     TransformerEncoder,
 )
-from fairseq.fairseq.modules import GradMultiply, LayerNorm
-from fairseq.fairseq.tasks.hubert_pretraining import (
+from fairseq.modules import GradMultiply, LayerNorm
+from fairseq.tasks.hubert_pretraining import (
     HubertPretrainingConfig,
     HubertPretrainingTask,
 )

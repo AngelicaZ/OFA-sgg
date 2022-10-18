@@ -8,7 +8,7 @@ from typing import List, Optional
 
 import torch
 import torch.nn as nn
-from fairseq.fairseq.token_generation_constraints import (
+from fairseq.token_generation_constraints import (
     ConstraintState,
     OrderedConstraintState,
     UnorderedConstraintState,
@@ -137,8 +137,7 @@ class BeamSearch(Search):
         scores_buf = top_prediction[0]
         indices_buf = top_prediction[1]
         # Project back into relative indices and beams
-        # beams_buf = indices_buf // vocab_size
-        beams_buf = torch.div(indices_buf, vocab_size, rounding_mode='floor')
+        beams_buf = indices_buf // vocab_size
         indices_buf = indices_buf.fmod(vocab_size)
 
         # At this point, beams_buf and indices_buf are single-dim and contain relative indices

@@ -7,15 +7,15 @@
 import importlib
 import os
 
-from fairseq.fairseq import registry
-from fairseq.fairseq.optim.bmuf import FairseqBMUF  # noqa
-from fairseq.fairseq.optim.fairseq_optimizer import (  # noqa
+from fairseq import registry
+from fairseq.optim.bmuf import FairseqBMUF  # noqa
+from fairseq.optim.fairseq_optimizer import (  # noqa
     FairseqOptimizer,
     LegacyFairseqOptimizer,
 )
-from fairseq.fairseq.optim.amp_optimizer import AMPOptimizer
-from fairseq.fairseq.optim.fp16_optimizer import FP16Optimizer, MemoryEfficientFP16Optimizer
-from fairseq.fairseq.optim.shard import shard_
+from fairseq.optim.amp_optimizer import AMPOptimizer
+from fairseq.optim.fp16_optimizer import FP16Optimizer, MemoryEfficientFP16Optimizer
+from fairseq.optim.shard import shard_
 from omegaconf import DictConfig
 
 __all__ = [
@@ -45,4 +45,4 @@ def build_optimizer(cfg: DictConfig, params, *extra_args, **extra_kwargs):
 for file in sorted(os.listdir(os.path.dirname(__file__))):
     if file.endswith(".py") and not file.startswith("_"):
         file_name = file[: file.find(".py")]
-        importlib.import_module("fairseq.fairseq.optim." + file_name)
+        importlib.import_module("fairseq.optim." + file_name)

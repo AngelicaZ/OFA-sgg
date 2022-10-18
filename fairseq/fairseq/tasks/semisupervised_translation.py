@@ -7,8 +7,8 @@ import logging
 import os
 from collections import OrderedDict
 
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import (
+from fairseq import utils
+from fairseq.data import (
     BacktranslationDataset,
     IndexedCachedDataset,
     IndexedDataset,
@@ -19,8 +19,8 @@ from fairseq.fairseq.data import (
     data_utils,
     indexed_dataset,
 )
-from fairseq.fairseq.models import FairseqMultiModel
-from fairseq.fairseq.sequence_generator import SequenceGenerator
+from fairseq.models import FairseqMultiModel
+from fairseq.sequence_generator import SequenceGenerator
 
 from . import register_task
 from .multilingual_translation import MultilingualTranslationTask

@@ -6,7 +6,7 @@
 CamemBERT: a Tasty French Language Model
 """
 
-from fairseq.fairseq.models import register_model
+from fairseq.models import register_model
 
 from .hub_interface import RobertaHubInterface
 from .model import RobertaModel

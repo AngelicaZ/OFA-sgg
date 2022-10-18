@@ -6,7 +6,7 @@
 
 import logging
 from hydra.core.config_store import ConfigStore
-from fairseq.fairseq.dataclass.configs import FairseqConfig
+from fairseq.dataclass.configs import FairseqConfig
 from omegaconf import DictConfig, OmegaConf
 
 

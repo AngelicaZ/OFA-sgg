@@ -7,7 +7,7 @@ WORKER_CNT=1
 export MASTER_ADDR=127.0.0.1 # 162.129.251.54
 
 # The port for communication
-export MASTER_PORT=6052
+export MASTER_PORT=1051
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 export RANK=0 
 
@@ -37,6 +37,7 @@ label_smoothing=0.1
 report_accuracy=True
 batch_size=4
 warmup_ratio=0.06
+total_num_update=50000
 update_freq=8
 resnet_drop_path_rate=0.0
 encoder_drop_path_rate=0.2
@@ -61,8 +62,11 @@ tgt_seq_len=350
 
 
 #           --roidb-file=${roidb_file} \
+# --warmup-ratio=${warmup_ratio} \
+# --lr-scheduler=polynomial_decay \
+# --total-num-update=${total_num_update} \
 
-for max_epoch in 50; do
+for max_epoch in 10; do
   echo "max_epoch "${max_epoch}
   for lr in 1e-4; do
     echo "lr "${lr}
@@ -70,8 +74,8 @@ for max_epoch in 50; do
       echo "arch "${arch}
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_1000_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_1000_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_1017_l2loss_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_1017_l2loss_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
@@ -113,8 +117,8 @@ for max_epoch in 50; do
           --clip-norm=1.0 \
           --lr-scheduler=polynomial_decay \
           --lr=${lr} \
-          --max-epoch=${max_epoch} \
           --warmup-ratio=${warmup_ratio} \
+          --max-epoch=${max_epoch} \
           --log-format=simple \
           --log-interval=10 \
           --fixed-validation-seed=7 \

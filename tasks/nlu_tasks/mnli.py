@@ -10,9 +10,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
-from fairseq.fairseq import metrics
-from fairseq.fairseq.dataclass import ChoiceEnum
-from fairseq.fairseq.tasks import register_task
+from fairseq import metrics
+from fairseq.dataclass import ChoiceEnum
+from fairseq.tasks import register_task
 
 from tasks.ofa_task import OFATask, OFAConfig
 from data.nlu_data.mnli_dataset import MNLIDataset

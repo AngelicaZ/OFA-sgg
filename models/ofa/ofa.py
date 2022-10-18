@@ -13,9 +13,9 @@ import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.fairseq import utils
-from fairseq.fairseq.models import register_model, register_model_architecture
-from fairseq.fairseq.modules.transformer_sentence_encoder import init_bert_params
+from fairseq import utils
+from fairseq.models import register_model, register_model_architecture
+from fairseq.modules.transformer_sentence_encoder import init_bert_params
 
 from .unify_transformer import TransformerModel
 

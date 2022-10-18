@@ -11,8 +11,8 @@ import os
 from collections import OrderedDict, defaultdict
 from argparse import ArgumentError
 
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import (
+from fairseq import utils
+from fairseq.data import (
     AppendTokenDataset,
     ConcatDataset,
     Dictionary,
@@ -26,16 +26,16 @@ from fairseq.fairseq.data import (
     data_utils,
     indexed_dataset,
 )
-from fairseq.fairseq.data.multilingual.multilingual_utils import (
+from fairseq.data.multilingual.multilingual_utils import (
     EncoderLangtok,
     LangTokSpec,
     LangTokStyle,
     augment_dictionary,
     get_lang_tok,
 )
-from fairseq.fairseq.data.multilingual.sampled_multi_dataset import CollateFormat
-from fairseq.fairseq.file_io import PathManager
-from fairseq.fairseq.utils import FileContentsAction, csv_str_list, eval_str_dict
+from fairseq.data.multilingual.sampled_multi_dataset import CollateFormat
+from fairseq.file_io import PathManager
+from fairseq.utils import FileContentsAction, csv_str_list, eval_str_dict
 
 
 logger = logging.getLogger(__name__)

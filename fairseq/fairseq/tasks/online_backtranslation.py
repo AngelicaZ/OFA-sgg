@@ -19,9 +19,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import fairseq.fairseq
-from fairseq.fairseq import metrics, options, utils
-from fairseq.fairseq.data import (
+import fairseq
+from fairseq import metrics, options, utils
+from fairseq.data import (
     FairseqDataset,
     LanguagePairDataset,
     NoisingDataset,
@@ -31,9 +31,9 @@ from fairseq.fairseq.data import (
     data_utils,
     encoders,
 )
-from fairseq.fairseq.sequence_generator import SequenceGenerator
-from fairseq.fairseq.tasks import register_task
-from fairseq.fairseq.tasks.translation import TranslationTask, load_langpair_dataset
+from fairseq.sequence_generator import SequenceGenerator
+from fairseq.tasks import register_task
+from fairseq.tasks.translation import TranslationTask, load_langpair_dataset
 
 logger = logging.getLogger(__name__)
 

@@ -6,10 +6,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.fairseq import utils
-from fairseq.fairseq.incremental_decoding_utils import with_incremental_state
-from fairseq.fairseq.modules.fairseq_dropout import FairseqDropout
-from fairseq.fairseq.modules.unfold import unfold1d
+from fairseq import utils
+from fairseq.incremental_decoding_utils import with_incremental_state
+from fairseq.modules.fairseq_dropout import FairseqDropout
+from fairseq.modules.unfold import unfold1d
 
 
 def LightweightConv(

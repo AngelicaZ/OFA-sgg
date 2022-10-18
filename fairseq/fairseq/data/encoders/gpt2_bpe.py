@@ -5,9 +5,9 @@
 
 from dataclasses import dataclass, field
 
-from fairseq.fairseq import file_utils
-from fairseq.fairseq.data.encoders import register_bpe
-from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq import file_utils
+from fairseq.data.encoders import register_bpe
+from fairseq.dataclass import FairseqDataclass
 
 from .gpt2_bpe_utils import get_encoder
 

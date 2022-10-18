@@ -20,7 +20,7 @@ from contextlib import contextmanager
 import torch
 from torch import nn
 
-from fairseq.fairseq.distributed import utils
+from fairseq.distributed import utils
 
 
 class LegacyDistributedDataParallel(nn.Module):

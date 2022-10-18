@@ -5,7 +5,7 @@
 
 import logging
 
-from fairseq.fairseq.modules.quantization import pq, quantization_options, scalar
+from fairseq.modules.quantization import pq, quantization_options, scalar
 from omegaconf import DictConfig
 
 

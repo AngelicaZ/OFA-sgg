@@ -8,19 +8,19 @@ import logging
 import time
 
 import torch
-from fairseq.fairseq.data import (
+from fairseq.data import (
     FairseqDataset,
     LanguagePairDataset,
     ListDataset,
     data_utils,
     iterators,
 )
-from fairseq.fairseq.data.multilingual.multilingual_data_manager import (
+from fairseq.data.multilingual.multilingual_data_manager import (
     MultilingualDatasetManager,
 )
-from fairseq.fairseq.data.multilingual.sampling_method import SamplingMethod
-from fairseq.fairseq.tasks import LegacyFairseqTask, register_task
-from fairseq.fairseq.utils import FileContentsAction
+from fairseq.data.multilingual.sampling_method import SamplingMethod
+from fairseq.tasks import LegacyFairseqTask, register_task
+from fairseq.utils import FileContentsAction
 
 
 ###

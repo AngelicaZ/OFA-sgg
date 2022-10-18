@@ -8,8 +8,8 @@ import os
 
 import numpy as np
 import torch
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import (
+from fairseq import utils
+from fairseq.data import (
     ConcatDataset,
     Dictionary,
     IdDataset,
@@ -26,7 +26,7 @@ from fairseq.fairseq.data import (
     data_utils,
     encoders,
 )
-from fairseq.fairseq.tasks import LegacyFairseqTask, register_task
+from fairseq.tasks import LegacyFairseqTask, register_task
 
 
 logger = logging.getLogger(__name__)

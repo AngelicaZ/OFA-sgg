@@ -4,9 +4,11 @@
 # found in the LICENSE file in the root directory.
 
 import logging
+import pdb
 import re
 import torch.utils.data
-from fairseq.fairseq.data import FairseqDataset
+from fairseq.data import FairseqDataset
+from fairseq.tokenizer import tokenize_line
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,38 @@ class OFADataset(FairseqDataset):
         return len(self.dataset)
 
     def encode_text(self, text, length=None, append_bos=False, append_eos=False, use_bpe=True):
+        
+        # def encode_line(
+        #     line,
+        #     line_tokenizer=tokenize_line,
+        #     add_if_not_exist=True,
+        #     consumer=None,
+        #     append_eos=True,
+        #     reverse_order=False,
+        # ) -> torch.IntTensor:
+        #     words = line_tokenizer(line)
+        #     print("words: ", words)
+        #     if reverse_order:
+        #         words = list(reversed(words))
+        #     nwords = len(words)
+        #     print("nwords: ", nwords)
+        #     pdb.set_trace()
+        #     ids = torch.IntTensor(nwords + 1 if append_eos else nwords)
+
+        #     for i, word in enumerate(words):
+        #         if add_if_not_exist:
+        #             idx = self.add_symbol(word)
+        #         else:
+        #             idx = self.index(word)
+        #         if consumer is not None:
+        #             consumer(word, idx)
+        #         ids[i] = idx
+        #     if append_eos:
+        #         ids[nwords] = self.eos_index
+        #     return ids
+        
         s = self.tgt_dict.encode_line(
+        # s = encode_line(
             line=self.bpe.encode(text) if use_bpe else text,
             add_if_not_exist=False,
             append_eos=False

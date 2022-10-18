@@ -13,13 +13,13 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import Dictionary
-from fairseq.fairseq.dataclass.utils import (
+from fairseq import utils
+from fairseq.data import Dictionary
+from fairseq.dataclass.utils import (
     convert_namespace_to_omegaconf,
     gen_parser_from_dataclass,
 )
-from fairseq.fairseq.models import FairseqDecoder, FairseqEncoder
+from fairseq.models import FairseqDecoder, FairseqEncoder
 from omegaconf import DictConfig
 from torch import Tensor
 
@@ -63,7 +63,7 @@ class BaseFairseqModel(nn.Module):
         self,
         net_output: Tuple[Tensor, Optional[Dict[str, List[Optional[Tensor]]]]],
         log_probs: bool,
-        sample: Optional[Dict[str, Tensor]] = None, 
+        sample: Optional[Dict[str, Tensor]] = None,
     ):
         """Get normalized probabilities (or log probs) from a net's output."""
         return self.get_normalized_probs_scriptable(net_output, log_probs, sample)

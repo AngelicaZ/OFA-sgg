@@ -12,12 +12,12 @@ from typing import Optional
 
 import torch
 import torch.nn.functional as F
-from fairseq.fairseq import metrics, utils
-from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.fairseq.dataclass import FairseqDataclass
-from fairseq.fairseq.data.data_utils import post_process
-from fairseq.fairseq.tasks import FairseqTask
-from fairseq.fairseq.logging.meters import safe_round
+from fairseq import metrics, utils
+from fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.dataclass import FairseqDataclass
+from fairseq.data.data_utils import post_process
+from fairseq.tasks import FairseqTask
+from fairseq.logging.meters import safe_round
 
 
 @dataclass

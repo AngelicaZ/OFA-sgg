@@ -7,7 +7,7 @@ from collections import namedtuple
 
 import numpy as np
 import torch
-from fairseq.fairseq import utils
+from fairseq import utils
 
 
 DecoderOut = namedtuple(

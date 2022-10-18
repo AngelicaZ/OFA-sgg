@@ -6,8 +6,6 @@ import torch
 import torch.nn as nn
 import json
 import pdb
-from inflection import singularize as inf_singularize
-from pattern.text.en import singularize as pat_singularize
 from torch.utils.data import Dataset
 
 
@@ -35,40 +33,6 @@ class GQASceneDataset(Dataset) :
         self.embed_size = 300
         self.attr_length = 622
 
-
-    def getname2idx(self, name) :
-        try :
-            cid = self.vocab_json['label2idx'][name]
-        except :
-            try :
-                try:
-                    name1 = inf_singularize(name)
-                    cid = self.vocab_json['label2idx'][name1]
-                except:
-                    name2 = pat_singularize(name)
-                    cid = self.vocab_json['label2idx'][name2]
-            except :
-                name = name.rstrip('s')
-                cid = self.vocab_json['label2idx'][name]
-        return cid
-
-    def getattr2idx(self, attr) :
-        try :
-            cid = self.vocab_json['attr2idx'][attr]
-        except :
-            try:
-                try:
-                    attr1 = inf_singularize(attr)
-                    cid = self.vocab_json['attr2idx'][attr1]
-                except:
-                    attr2 = pat_singularize(attr)
-                    cid = self.vocab_json['attr2idx'][attr2]
-            except :
-                name = attr.rstrip('s')
-                cid = self.vocab_json['label2idx'][name]
-
-        return cid
-
     def box2embedding(self, box) :
         proj = nn.Linear(4, self.embed_size)
         box = torch.from_numpy(box)
@@ -86,83 +50,7 @@ class GQASceneDataset(Dataset) :
         return embed
 
 
-    def scene2embedding(self, imageid) :
-        #print (imageid)
-        meta = dict()
-        # embeds = dict()
-        
-        scenegraphs_json = self.scenegraphs_json
-        vocab_json = self.vocab_json
-        meta['imageId'] = imageid
-        
-        info_raw = scenegraphs_json[imageid]
-        meta['height'] = info_raw['height']
-        meta['width'] = info_raw['width']
-
-        objects = []
-        objects_name = []
-        objects_attr = []
-        boxes = [[0,0,0,0]]*36
-        labels_embeddings = []
-        attr_embeddings = []
-        boxes_embed = []
-
-        for i,obj_id in enumerate(info_raw['objects'].keys()) :
-            # embeds[obj_id] = {}
-            obj = info_raw['objects'][obj_id]
-            obj_name = np.zeros(self.len_labels, dtype=np.float32)
-            obj_attr = np.zeros(self.len_attr, dtype=np.float32)
-            box = np.zeros(4, dtype=np.float32)
-            name = obj['name']
-            # embeds[obj_id]['name'] = name
-
-            try : 
-                cid = self.getname2idx(name)
-                label_embed = self.getembedding(cid, is_label=True)
-                labels_embeddings.append(label_embed)
-                obj_name[cid] = 1
-
-                # embeds[obj_id]['attr_embed'] = []
-                for attr in obj['attributes'] :
-                    if not attr:
-                        attr_embed = 0
-                    else:
-                        cid = self.getattr2idx(attr)
-                        attr_embed = self.getembedding(cid)
-                    attr_embeddings.append(attr_embed)
-                    obj_attr[cid] = 1
-                #pdb.set_trace()
-                #objects_name.append(obj_name)
-                #objects_attr.append(obj_attr)
-
-                box[0] = abs(float(obj['x']))
-                box[1] = abs(float(obj['y']))
-                box[2] = abs(float(obj['x'] + obj['w']))
-                box[3] = abs(float(obj['y'] + obj['h']))
-                boxes[i] = box
-
-            except :
-                continue
-
-        zero_embedding = np.asarray([0]*300)
-        if len(labels_embeddings) < 36:
-            for i in range(36 - len(labels_embeddings)):
-                labels_embeddings.append(zero_embedding)
-        else:
-            labels_embeddings = labels_embeddings[:36] 
-        
-        if len(attr_embeddings) < 36:
-            for i in range(36 - len(attr_embeddings)):
-                attr_embeddings.append(zero_embedding)
-        else:
-            attr_embeddings = attr_embeddings[:36] 
-        #embeddings = labels_embeddings + attr_embeddings
-        #len_embedding = len(embeddings)
-        out = np.zeros((36,300))
-        for i in range(36) :
-           out[i] = np.add(labels_embeddings[i], attr_embeddings[i])
-
-        return out, boxes
+    
         
     def extractembeddings(self,images_list, mapping) :
         final_embeddings = mapping
@@ -182,7 +70,7 @@ class GQASceneDataset(Dataset) :
 
     def SceneGraph2SeqV2(self, imageid, num_bins, required_len = None):
         '''
-        version 2.0
+        version 2.0 GQA dataset
         Sequence example:
         <obj0_name> is <R01> <obj1_name> . 
         '''

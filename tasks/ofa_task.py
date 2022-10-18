@@ -10,11 +10,11 @@ import math
 import torch
 from typing import Dict, Optional
 
-from fairseq.fairseq import search
-from fairseq.fairseq.data import FairseqDataset, iterators
-from fairseq.fairseq.optim.amp_optimizer import AMPOptimizer
-from fairseq.fairseq.dataclass import FairseqDataclass
-from fairseq.fairseq.tasks import FairseqTask, register_task
+from fairseq import search
+from fairseq.data import FairseqDataset, iterators
+from fairseq.optim.amp_optimizer import AMPOptimizer
+from fairseq.dataclass import FairseqDataclass
+from fairseq.tasks import FairseqTask, register_task
 from omegaconf import DictConfig
 
 
@@ -207,14 +207,14 @@ class OFATask(FairseqTask):
                 https://github.com/facebookresearch/GENRE.
         """
         if getattr(args, "score_reference", False):
-            from fairseq.fairseq.sequence_scorer import SequenceScorer
+            from fairseq.sequence_scorer import SequenceScorer
 
             return SequenceScorer(
                 self.target_dictionary,
                 compute_alignment=getattr(args, "print_alignment", False),
             )
 
-        from fairseq.fairseq.sequence_generator import (
+        from fairseq.sequence_generator import (
             # SequenceGenerator,
             SequenceGeneratorWithAlignment,
         )

@@ -7,8 +7,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import encoders
+from fairseq import utils
+from fairseq.data import encoders
 
 
 class RobertaHubInterface(nn.Module):

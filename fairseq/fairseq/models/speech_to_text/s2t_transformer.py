@@ -7,16 +7,16 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from fairseq.fairseq import checkpoint_utils, utils
-from fairseq.fairseq.data.data_utils import lengths_to_padding_mask
-from fairseq.fairseq.models import (
+from fairseq import checkpoint_utils, utils
+from fairseq.data.data_utils import lengths_to_padding_mask
+from fairseq.models import (
     FairseqEncoder,
     FairseqEncoderDecoderModel,
     register_model,
     register_model_architecture,
 )
-from fairseq.fairseq.models.transformer import Embedding, TransformerDecoder
-from fairseq.fairseq.modules import (
+from fairseq.models.transformer import Embedding, TransformerDecoder
+from fairseq.modules import (
     FairseqDropout,
     LayerNorm,
     PositionalEmbedding,

@@ -14,11 +14,11 @@ from argparse import Namespace
 from dataclasses import dataclass, field
 from typing import Optional, Any
 
-from fairseq.fairseq.data import AddTargetDataset, Dictionary, encoders
-from fairseq.fairseq.tasks.audio_pretraining import AudioPretrainingTask, AudioPretrainingConfig
-from fairseq.fairseq.dataclass import FairseqDataclass
-from fairseq.fairseq.dataclass.configs import GenerationConfig
-from fairseq.fairseq.data.text_compressor import TextCompressor, TextCompressionLevel
+from fairseq.data import AddTargetDataset, Dictionary, encoders
+from fairseq.tasks.audio_pretraining import AudioPretrainingTask, AudioPretrainingConfig
+from fairseq.dataclass import FairseqDataclass
+from fairseq.dataclass.configs import GenerationConfig
+from fairseq.data.text_compressor import TextCompressor, TextCompressionLevel
 
 from . import register_task
 from .. import utils

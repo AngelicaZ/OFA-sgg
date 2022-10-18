@@ -16,9 +16,10 @@ from collections import OrderedDict
 import numpy as np
 import sacrebleu
 import torch
-from fairseq.fairseq.tasks import register_task
+from fairseq.tasks import register_task
 import string
-from fairseq.fairseq import metrics, utils
+from fairseq import metrics, utils
+from fairseq.optim.amp_optimizer import AMPOptimizer
 from sacrebleu.metrics import BLEU
 
 from models import search
@@ -174,6 +175,7 @@ class SggTask(OFATask):
                 roidb_file, 
                 dict_file, 
                 image_file,
+                self.bpe,
                 num_im=-1,
                 num_val_im=5000,
                 required_len=tgt_seq_len
@@ -213,9 +215,43 @@ class SggTask(OFATask):
             )
 
         return model
+    
+    def train_step(
+        self, sample, model, criterion, optimizer, update_num, ignore_grad=False, **extra_kwargs
+    ):
+        """
+        Do forward and backward, and return the loss as computed by *criterion*
+        for the given *model* and *sample*.
+
+        Args:
+            sample (dict): the mini-batch. The format is defined by the
+                :class:`~fairseq.data.FairseqDataset`.
+            model (~fairseq.models.BaseFairseqModel): the model
+            criterion (~fairseq.criterions.FairseqCriterion): the criterion
+            optimizer (~fairseq.optim.FairseqOptimizer): the optimizer
+            update_num (int): the current update
+            ignore_grad (bool): multiply loss by 0 if this is set to True
+
+        Returns:
+            tuple:
+                - the loss
+                - the sample size, which is used as the denominator for the
+                  gradient
+                - logging outputs to display while training
+        """
+        model.train()
+        model.set_num_updates(update_num)
+        with torch.autograd.profiler.record_function("forward"):
+            with torch.cuda.amp.autocast(enabled=(isinstance(optimizer, AMPOptimizer))):
+                loss, sample_size, logging_output = criterion(self.sequence_generator, model, sample, update_num=update_num)
+        if ignore_grad:
+            loss *= 0
+        with torch.autograd.profiler.record_function("backward"):
+            optimizer.backward(loss)
+        return loss, sample_size, logging_output
 
     def valid_step(self, sample, model, criterion):
-        loss, sample_size, logging_output = criterion(model, sample)
+        loss, sample_size, logging_output = criterion(self.sequence_generator, model, sample)
 
         model.eval()
         if self.cfg.eval_bleu:
@@ -234,6 +270,7 @@ class SggTask(OFATask):
 
     def reduce_metrics(self, logging_outputs, criterion):
         super().reduce_metrics(logging_outputs, criterion)
+        """Aggregate logging outputs from data parallel training."""
 
         def sum_logs(key):
             import torch
@@ -273,7 +310,7 @@ class SggTask(OFATask):
                     )
                     return round(bleu.score, 2) # TODO: modify to trunc or floor
 
-                metrics.log_derived("bleu", compute_bleu)
+                metrics.log_derived("bleu", compute_bleu) # Log a scalar value derived from other meters.
 
     def _inference(self, generator, sample, model):
 
@@ -285,7 +322,7 @@ class SggTask(OFATask):
                 # BLEU scores. Instead, we use a somewhat more verbose
                 # alternative that is unlikely to appear in the real
                 # reference, but doesn't get split into multiple tokens.
-                unk_string=("UNKNOWNTOKENINREF" if escape_unk else "UNKNOWNTOKENINHYP"),
+                # unk_string=("UNKNOWNTOKENINREF" if escape_unk else "UNKNOWNTOKENINHYP"),
             )
             if self.bpe:
                 s = self.bpe.decode(s)
@@ -312,11 +349,11 @@ class SggTask(OFATask):
                     for sent in decode(
                         utils.strip_pad(sample["target"][i], self.tgt_dict.pad()),
                         escape_unk=True,  # don't count <unk> as matches to the hypo
-                    ).split('&&')
+                    ).split(' ')
                 ]
             )
         if self.cfg.eval_print_samples:
             logger.info("example hypothesis: " + hyps[0])
-            logger.info("example reference: " + ' && '.join(refs[0]))
+            logger.info("example reference: " + ' '.join(refs[0]))
 
         return hyps, refs

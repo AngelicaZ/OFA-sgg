@@ -4,3 +4,6 @@
 *.pyc
 *.pyo
 *.pt
+VG-SGG-with-attri.h5
+draft.py
+fairseq_base/*

@@ -7,8 +7,8 @@ import contextlib
 from typing import Optional
 
 import torch
-from fairseq.fairseq.dataclass.configs import DistributedTrainingConfig
-from fairseq.fairseq.distributed import utils as dist_utils
+from fairseq.dataclass.configs import DistributedTrainingConfig
+from fairseq.distributed import utils as dist_utils
 
 
 try:

@@ -9,10 +9,10 @@ import sys
 
 import torch
 import torch.nn as nn
-from fairseq.fairseq import search, utils
-from fairseq.fairseq.models import FairseqIncrementalDecoder
+from fairseq import search, utils
+from fairseq.models import FairseqIncrementalDecoder
 from torch import Tensor
-from fairseq.fairseq.ngram_repeat_block import NGramRepeatBlock
+from fairseq.ngram_repeat_block import NGramRepeatBlock
 
 from data import data_utils
 

@@ -63,6 +63,8 @@ def collate(samples, pad_idx, eos_idx):
     else:
         ntokens = src_lengths.sum().item()
     
+    # target shape: [4, 9] or [4, 10] or [4, 11]
+    
     batch = {
         "id": id,
         "idx": idxes,
@@ -120,12 +122,12 @@ class SggVGDataset(OFADataset):
     
 
     def __getitem__(self, idx):
-        img, tgt_seq, imageid, src_text, index = self.dataset[idx]
+        img, tgt_seq, target_seq_raw, imageid, src_text, index = self.dataset[idx]
         
         patch_image = self.patch_resize_transform(img)
 
-        tgt_caption = '&&'.join(tgt_seq)
-        tgt_item = self.encode_text(" {}".format(tgt_caption))  # NOTICE: removed space (recovered)
+        tgt_caption = ' '.join(tgt_seq)
+        tgt_item = self.encode_text(tgt_caption, use_bpe=False)
         
         patch_mask = torch.tensor([True])
 
@@ -135,7 +137,8 @@ class SggVGDataset(OFADataset):
         src_item = torch.cat([self.bos_item, src_item, self.eos_item])
         target_item = torch.cat([tgt_item, self.eos_item])
         prev_output_item = torch.cat([self.bos_item, tgt_item])
-        
+
+        # print("target in middle dataset: ", target_item)
         
         example = {
             "id": imageid,
@@ -180,6 +183,7 @@ class VGDatasetReader(Dataset):
                  roidb_file, 
                  dict_file, 
                  image_file, 
+                 bpe, 
                  transforms=None,
                  filter_empty_rels=True, 
                  required_len=None,
@@ -216,12 +220,14 @@ class VGDatasetReader(Dataset):
         self.dict_file = dict_file
         self.roidb_file = roidb_file
         self.image_file = image_file
+        self.bpe = bpe
         self.filter_non_overlap = filter_non_overlap and self.split == 'train'
         self.filter_duplicate_rels = filter_duplicate_rels and self.split == 'train'
         self.transforms = transforms
         self.required_len = required_len
 
         self.ind_to_classes, self.ind_to_predicates, self.ind_to_attributes = load_info(dict_file) # contiguous 151, 51 containing __background__
+        self.class_to_ind, self.predicate_to_ind, self.attribute_to_ind = find_index(dict_file)
         self.categories = {i : self.ind_to_classes[i] for i in range(len(self.ind_to_classes))}
 
         self.custom_eval = custom_eval
@@ -269,32 +275,20 @@ class VGDatasetReader(Dataset):
             img, target = self.transforms(img, target)
 
         target_seq = self.target2seq(target, self.required_len)
-        # print("image path: ", img_path)
-        # print("imageid: ", imageid)
-        # print("index before model: ", index)
-        # pdb.set_trace()
-        # print(f"target seq: {target_seq}" )
-        # print("\n")
+        target_seq_raw = self.target2seq_raw(target, self.required_len)
+        # print("target in raw dataset: ", target_seq)
 
         src_text = 'Parse image.'
 
-        return img, target_seq, imageid, src_text, index
-
-    def target2seq(self, target, required_len=None):
-        '''
-        target fields: ['labels', 'attributes', 'relation']
-        bboxes: [14, 4]
-        labels: [14]
-        attributes: [14, 10]
-        : [14, 14]
-
-        Sequence example:
-        <obj0_name> is <R01> <obj1_name> . 
-        '''
+        return img, target_seq, target_seq_raw, imageid, src_text, index
+    
+    def target2seq_raw(self, target, required_len=None):
         seq = []
         obj_num = target.bbox.shape[0]
+        # (w, h) = target.size
         for i in range(obj_num): # each object
-            bbox = target.bbox[0, :]
+            bbox = target.bbox[i, :]
+            # print("bbox: ", bbox)
             obj_id = target.extra_fields['labels'][i]
             attrs_id = target.extra_fields['attributes'][i, :]
             relations_id = target.extra_fields['relation'][i, :]
@@ -304,11 +298,77 @@ class VGDatasetReader(Dataset):
             else:
                 obj_name = self.ind_to_classes[obj_id]
                 seq.append(obj_name)
-                # seq.append(str(bbox[0]))
-                # seq.append(str(bbox[1]))
-                # seq.append(str(bbox[2]))
-                # seq.append(str(bbox[3]))
+                seq.append("<bin_{}>".format(str(round(bbox[0].item()))))
+                seq.append("<bin_{}>".format(str(round(bbox[1].item()))))
+                seq.append("<bin_{}>".format(str(round(bbox[2].item()))))
+                seq.append("<bin_{}>".format(str(round(bbox[3].item()))))
                 seq.append('is')
+                rel_cnt = 0
+                for j in range(obj_num):
+                    if relations_id[j] != 0:
+                        rel_cnt += 1
+                        obj2_id = target.extra_fields['labels'][j]
+                        # print("obj2 id: ", obj2_id.item())
+                        # pdb.set_trace()
+                        obj2_name = self.ind_to_classes[obj2_id]
+                        rel_id = relations_id[j]
+                        rel_name = self.ind_to_predicates[rel_id]
+                        rel_name_words = rel_name.split(' ')
+                        for k in range(len(rel_name_words)):
+                            seq.append(rel_name_words[k])
+                        seq.append(obj2_name)
+                        bbox2 = target.bbox[j, :]
+                        seq.append("<bin_{}>".format(str(round(bbox2[0].item()))))
+                        seq.append("<bin_{}>".format(str(round(bbox2[1].item()))))
+                        seq.append("<bin_{}>".format(str(round(bbox2[2].item()))))
+                        seq.append("<bin_{}>".format(str(round(bbox2[3].item()))))
+                        if rel_cnt < rel_num:
+                            seq.append(',')
+                        else:
+                            seq.append('.')
+        
+        seq_len = len(seq)
+        if required_len:
+            if seq_len > required_len:
+                seq = seq[:required_len]
+        
+        return seq
+
+
+
+    def target2seq(self, target, required_len=None):
+        '''
+        target fields: ['labels', 'attributes', 'relation']
+        bboxes: [14, 4] (xyxy), without normalization
+        labels: [14]
+        attributes: [14, 10]
+        : [14, 14]
+
+        Sequence example:
+        <obj0_name> is <R01> <obj1_name> . 
+        '''
+        seq = []
+        obj_num = target.bbox.shape[0]
+        # (w, h) = target.size
+        for i in range(obj_num): # each object
+            bbox = target.bbox[i, :]
+            # print("bbox: ", bbox)
+            obj_id = target.extra_fields['labels'][i]
+            attrs_id = target.extra_fields['attributes'][i, :]
+            relations_id = target.extra_fields['relation'][i, :]
+            rel_num = np.count_nonzero(relations_id)
+            if rel_num == 0:
+                continue
+            else:
+                obj_name = self.ind_to_classes[obj_id]
+                seq.append(self.bpe.encode(obj_name + '&&'))
+                # seq.append(self.bpe.encode(obj_name))
+                seq.append("<bin_{}>".format(str(round(bbox[0].item()))))
+                seq.append("<bin_{}>".format(str(round(bbox[1].item()))))
+                seq.append("<bin_{}>".format(str(round(bbox[2].item()))))
+                seq.append("<bin_{}>".format(str(round(bbox[3].item()))))
+                seq.append(self.bpe.encode('&&is&&'))
+                # seq.append(self.bpe.encode('is'))
                 rel_cnt = 0
                 for j in range(obj_num):
                     if relations_id[j] != 0:
@@ -319,17 +379,21 @@ class VGDatasetReader(Dataset):
                         rel_name = self.ind_to_predicates[rel_id]
                         rel_name_words = rel_name.split(' ')
                         for k in range(len(rel_name_words)):
-                            seq.append(rel_name_words[k])
-                        seq.append(obj2_name)
-                        # bbox2 = target.bbox[obj2_id, :]
-                        # seq.append(str(bbox2[0]))
-                        # seq.append(str(bbox2[1]))
-                        # seq.append(str(bbox2[2]))
-                        # seq.append(str(bbox2[3]))
+                            seq.append(self.bpe.encode(rel_name_words[k] + '&&'))
+                            # seq.append(self.bpe.encode(rel_name_words[k]))
+                        seq.append(self.bpe.encode(obj2_name + '&&'))
+                        # seq.append(self.bpe.encode(obj2_name))
+                        bbox2 = target.bbox[j, :]
+                        seq.append("<bin_{}>".format(str(round(bbox2[0].item()))))
+                        seq.append("<bin_{}>".format(str(round(bbox2[1].item()))))
+                        seq.append("<bin_{}>".format(str(round(bbox2[2].item()))))
+                        seq.append("<bin_{}>".format(str(round(bbox2[3].item()))))
                         if rel_cnt < rel_num:
-                            seq.append(',')
+                            seq.append(self.bpe.encode('&&,&&'))
+                            # seq.append(self.bpe.encode(','))
                         else:
-                            seq.append('.')
+                            seq.append(self.bpe.encode('&&.&&'))
+                            # seq.append(self.bpe.encode('.'))
         
         seq_len = len(seq)
         if required_len:
@@ -392,7 +456,7 @@ class VGDatasetReader(Dataset):
             box[:,0] = new_xmin
             box[:,2] = new_xmax
         target = BoxList(box, (w, h), 'xyxy') # xyxy
-        target.convert('xywh') # xywh
+        # target.convert('xywh') # xywh
 
         target.add_field("labels", torch.from_numpy(self.gt_classes[index]))
         target.add_field("attributes", torch.from_numpy(self.gt_attributes[index]))
@@ -533,6 +597,22 @@ def load_info(dict_file, add_bg=True):
 
     return ind_to_classes, ind_to_predicates, ind_to_attributes
 
+def find_index(dict_file, add_bg=True):
+    info = json.load(open(dict_file, 'r'))
+    if add_bg:
+        info['label_to_idx']['__background__'] = 0
+        info['predicate_to_idx']['__background__'] = 0
+        info['attribute_to_idx']['__background__'] = 0
+
+    class_to_ind = info['label_to_idx']
+    predicate_to_ind = info['predicate_to_idx']
+    attribute_to_ind = info['attribute_to_idx']
+
+    return class_to_ind, predicate_to_ind, attribute_to_ind
+
+
+
+
 
 def load_image_filenames(img_dir, image_file):
     """
@@ -585,7 +665,14 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
     roi_h5 = h5py.File(roidb_file, 'r')
     data_split = roi_h5['split'][:]
     split_flag = 2 if split == 'test' else 0
-    split_mask = data_split == split_flag
+
+    # to reduce the number of test image for debugging
+    if split == 'test':
+        for i in range(78000, len(data_split)):
+            data_split[i] = 0
+    
+
+    split_mask = data_split == split_flag # (108073,)
 
     # Filter out images without bounding boxes
     split_mask &= roi_h5['img_to_first_box'][:] >= 0
@@ -673,21 +760,3 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
         relationships.append(rels)
 
     return split_mask, boxes, gt_classes, gt_attributes, relationships
-
-
-
-
-
-# class VGDatasetReader(Dataset):
-#     def __init__(self,
-#                  img_dir,
-#                  scenegraph_path) -> None:
-#         super().__init__()
-#         self.img_dir = img_dir
-#         self.scenegraph_path = scenegraph_path
-    
-#     def __getitem__(self, idx):
-#         pass
-
-#     def __len__(self):
-#         pass

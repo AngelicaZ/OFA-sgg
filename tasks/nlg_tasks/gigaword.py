@@ -9,9 +9,9 @@ import logging
 import string
 from typing import Optional
 from argparse import Namespace
-from fairseq.fairseq import metrics
-from fairseq.fairseq.tasks import register_task
-from fairseq.fairseq.data import encoders
+from fairseq import metrics
+from fairseq.tasks import register_task
+from fairseq.data import encoders
 
 from tasks.ofa_task import OFATask, OFAConfig
 from data.nlg_data.summary_dataset import SummaryDataset

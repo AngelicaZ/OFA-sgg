@@ -10,8 +10,8 @@ from typing import Optional
 from argparse import Namespace
 
 import torch
-from fairseq.fairseq import metrics
-from fairseq.fairseq.tasks import register_task
+from fairseq import metrics
+from fairseq.tasks import register_task
 
 from tasks.ofa_task import OFATask, OFAConfig
 from data.mm_data.refcoco_dataset import RefcocoDataset

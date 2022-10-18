@@ -1,7 +1,10 @@
 
-export MASTER_PORT=4081
+export MASTER_PORT=8087
+# 8087, 4081, 3053, 3054, 3055
 export CUDA_VISIBLE_DEVICES=4,5,6,7
 export GPUS_PER_NODE=4
+export TORCH_DISTRIBUTED_DETAIL=DEBUG
+export NCCL_P2P_LEVEL=NVL
 
 user_dir=../../ofa_module
 bpe_dir=../../utils/BPE
@@ -13,8 +16,8 @@ data=${base_dir}/VG-SGG-with-attri.h5
 # dict_file=${base_dir}/VG-SGG-dicts-with-attri.json
 # image_file=${base_dir}/image_data.json
 
-checkpoint=checkpoint22
-paras=VG_50_1e-4_ofa_tiny_350
+checkpoint=checkpoint_best
+paras=VG_1016_nobbox_10_1e-4_ofa_tiny_350
 path=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 result_path=../../results/sgg/VG
 # selected_cols=1,4,2
@@ -25,7 +28,7 @@ mkdir -p $log_dir
 
 log_file=${log_dir}/${paras}"_"${checkpoint}".log"
 
-python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --master_port=${MASTER_PORT} ../../evaluate.py \
+python3 -m torch.distributed.launch  --nproc_per_node=${GPUS_PER_NODE} --master_port=${MASTER_PORT} ../../evaluate.py \
     ${data} \
     --path=${path} \
     --user-dir=${user_dir} \
@@ -42,3 +45,5 @@ python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --master_p
     --fp16 \
     --num-workers=0 > ${log_file} 2>&1 \
     --model-overrides="{\"data\":\"${data}\",\"bpe_dir\":\"${bpe_dir}\",\"eval_cider\":False}"
+
+# python VG_eval.py ../../results/sgg/test_1007l2_predict.json_predict.json ../../dataset/sgg_data/VG/test_caption_coco_format.json

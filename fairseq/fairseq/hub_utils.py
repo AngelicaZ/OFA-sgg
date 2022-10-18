@@ -11,8 +11,8 @@ import os
 from typing import Any, Dict, Iterator, List
 
 import torch
-from fairseq.fairseq import utils
-from fairseq.fairseq.data import encoders
+from fairseq import utils
+from fairseq.data import encoders
 from omegaconf import open_dict
 from torch import nn
 

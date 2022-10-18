@@ -16,15 +16,15 @@ from itertools import chain
 from typing import Any, Dict, List
 
 import torch
-from fairseq.fairseq import models, optim, utils
-from fairseq.fairseq.dataclass.configs import FairseqConfig
-from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.fairseq.distributed import utils as distributed_utils
-from fairseq.fairseq.file_io import PathManager
-from fairseq.fairseq.logging import meters, metrics
-from fairseq.fairseq.models.ema import build_ema
-from fairseq.fairseq.nan_detector import NanDetector
-from fairseq.fairseq.optim import lr_scheduler
+from fairseq import models, optim, utils
+from fairseq.dataclass.configs import FairseqConfig
+from fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.distributed import utils as distributed_utils
+from fairseq.file_io import PathManager
+from fairseq.logging import meters, metrics
+from fairseq.models.ema import build_ema
+from fairseq.nan_detector import NanDetector
+from fairseq.optim import lr_scheduler
 from omegaconf import OmegaConf
 
 from utils import checkpoint_utils
@@ -292,6 +292,7 @@ class Trainer(object):
                 chain(self.model.parameters(), self.criterion.parameters()),
             )
         )
+        # print("params: ", params)
 
         if self.is_fsdp and self.cfg.common.fp16:
             # FullyShardedDataParallel always uses MemoryEfficientFP16 wrapper,
@@ -1017,6 +1018,8 @@ class Trainer(object):
                 ):
                     torch.cuda.empty_cache()
 
+        # print("mark15")
+
         if self.cfg.common.fp16 or self.cfg.common.amp:
             metrics.log_scalar(
                 "loss_scale",
@@ -1029,8 +1032,12 @@ class Trainer(object):
                 round=4,
                 weight=0,
             )
+        
+        # print("mark16")
 
         metrics.log_stop_time("train_wall")
+
+        # print("mark17")
         return logging_output
 
     @metrics.aggregate("valid")
@@ -1491,6 +1498,7 @@ class Trainer(object):
         import torch_xla.core.xla_model as xm
 
         xm.mark_step()
+        print("mark8.25")
         if data is not None:
             from fairseq.utils import xla_device_to_cpu
 

@@ -12,9 +12,9 @@ from functools import lru_cache
 
 import numpy as np
 import torch
-from fairseq.fairseq.data import indexed_dataset
-from fairseq.fairseq.data.huffman import HuffmanCoder
-from fairseq.fairseq.file_io import PathManager
+from fairseq.data import indexed_dataset
+from fairseq.data.huffman import HuffmanCoder
+from fairseq.file_io import PathManager
 
 
 class HuffmanMMapIndex:

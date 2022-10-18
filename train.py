@@ -26,7 +26,7 @@ logger = logging.getLogger("fairseq_cli.train")
 
 import numpy as np
 import torch
-from fairseq.fairseq import (
+from fairseq import (
     options,
     quantization_utils,
     tasks,
@@ -34,14 +34,14 @@ from fairseq.fairseq import (
 )
 # checkpoint_utils,
 
-from fairseq.fairseq.data import iterators
-from fairseq.fairseq.data.plasma_utils import PlasmaStore
-from fairseq.fairseq.dataclass.configs import FairseqConfig
-from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.fairseq.distributed import fsdp_enable_wrap, fsdp_wrap, utils as distributed_utils
-from fairseq.fairseq.file_io import PathManager
-from fairseq.fairseq.logging import meters, metrics, progress_bar
-from fairseq.fairseq.model_parallel.megatron_trainer import MegatronTrainer
+from fairseq.data import iterators
+from fairseq.data.plasma_utils import PlasmaStore
+from fairseq.dataclass.configs import FairseqConfig
+from fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.distributed import fsdp_enable_wrap, fsdp_wrap, utils as distributed_utils
+from fairseq.file_io import PathManager
+from fairseq.logging import meters, metrics, progress_bar
+from fairseq.model_parallel.megatron_trainer import MegatronTrainer
 # from fairseq.trainer import Trainer
 from omegaconf import DictConfig, OmegaConf
 

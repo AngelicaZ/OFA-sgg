@@ -9,12 +9,15 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from fairseq.fairseq import metrics, utils
-from fairseq.fairseq.criterions import FairseqCriterion, register_criterion
-from fairseq.fairseq.dataclass import FairseqDataclass
+from fairseq import metrics, utils
+from fairseq.criterions import FairseqCriterion, register_criterion
+from fairseq.dataclass import FairseqDataclass
 from omegaconf import II
+from utils.eval_utils import decode_fn
+from data.mm_data.sgg_VG_dataset import VGDatasetReader
 
 
 @dataclass
@@ -89,7 +92,7 @@ def label_smoothed_nll_loss(
     if target.dim() == lprobs.dim() - 1:
         target = target.unsqueeze(-1)
     target = target.type(torch.int64)
-    nll_loss = -lprobs.gather(dim=-1, index=target).squeeze(-1)
+    nll_loss = -lprobs.gather(dim=-1, index=target).squeeze(-1) # out[i][j][k] = input[i][j][index[i][j][k]]  # if dim == 2
     if constraint_masks is not None:
         smooth_loss = -lprobs.masked_fill(~constraint_masks, 0).sum(dim=-1, keepdim=True).squeeze(-1)
         eps_i = epsilon / (constraint_masks.sum(1) - 1 + 1e-6)
@@ -167,7 +170,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             self.constraint_start = int(constraint_start)
             self.constraint_end = int(constraint_end)
 
-    def forward(self, model, sample, update_num=0, reduce=True):
+    def forward(self, generator, model, sample, update_num=0, reduce=True):
         """Compute the loss for the given sample.
 
         Returns a tuple with three elements:
@@ -205,10 +208,10 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             keys: ['src_tokens', 'src_lengths', 'patch_images', 'patch_masks', 'prev_output_tokens']
         sample["target"]:                   [4, 628]     or     [4, 755]    or    [4, 576]...
 
+
         net_output: tuple, len=2
         net_output[0]:                      [4, 628, 59457] or [4, 755, 59457] or [4, 576, 59457]...
-        net_output[1]: dict, 
-            keys: ['attn', 'inner_states']
+        net_output[1]: dict, keys: ['attn', 'inner_states']
         net_output[1]['attn']: list, len=1, [4, 628, 1029] or [4, 755, 1029] or [4, 576, 1029]...
         net_output[1]['inner_states']: list, len=5
                                        [0]: [628, 4, 256] or [755, 4, 256] or [576, 4, 256]...
@@ -219,7 +222,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         '''
         # print("target shape just before input to model: ", sample["target"].shape)
         
-        loss, nll_loss, ntokens = self.compute_loss(model, net_output, sample, update_num, reduce=reduce)
+        loss, nll_loss, ntokens = self.compute_loss(generator, model, net_output, sample, update_num, reduce=reduce)
         sample_size = (
             sample["target"].size(0) if self.sentence_avg else ntokens
         )
@@ -246,7 +249,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             net_output[0][:, :, 4:self.constraint_start] = -math.inf
             net_output[0][:, :, self.constraint_end:] = -math.inf
         lprobs = model.get_normalized_probs(net_output, log_probs=True) * conf # log softmax to the -1 dim of net_output[0]
-        target = model.get_targets(sample, net_output)
+        target = model.get_targets(sample, net_output) # sample["target"]
         if self.ignore_prefix_size > 0:
             lprobs = lprobs[:, self.ignore_prefix_size :, :].contiguous()
             target = target[:, self.ignore_prefix_size :].contiguous()
@@ -262,14 +265,19 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
                 constraint_masks = constraint_masks[~eos_indices].reshape(bsz, seq_len-1, embed_dim)
         if constraint_masks is not None:
             constraint_masks = constraint_masks.view(-1, constraint_masks.size(-1))
-        return lprobs.view(-1, lprobs.size(-1)), target.view(-1), constraint_masks
+        return lprobs.view(-1, lprobs.size(-1)), lprobs, target.view(-1), target, constraint_masks
 
-    def compute_loss(self, model, net_output, sample, update_num, reduce=True):
-        lprobs, target, constraint_masks = self.get_lprobs_and_target(model, net_output, sample)
+    def compute_loss(self, generator, model, net_output, sample, update_num, reduce=True):
+        # sample['target']: [4, 14]
+        lprobs, lprobs_raw, target, target_raw, constraint_masks = self.get_lprobs_and_target(model, net_output, sample)
+        # target [56]
         if constraint_masks is not None:
             constraint_masks = constraint_masks[target != self.padding_idx]
+        
+        bbox_loss = self.compute_bbox_loss(generator, lprobs_raw, target_raw, sample)
+        # print("bbox_loss: ", bbox_loss)
         lprobs = lprobs[target != self.padding_idx]
-        target = target[target != self.padding_idx]
+        target = target[target != self.padding_idx] # [26]
         loss, nll_loss, ntokens = label_smoothed_nll_loss(
             lprobs,
             target,
@@ -284,10 +292,112 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             constraint_start=self.constraint_start,
             constraint_end=self.constraint_end
         )
+        # print("loss: ", loss)
+        bbox_weight_l2 = 1.0 / 2000
+        bbox_weight_l1 = 3.0
+        loss += bbox_weight_l2 * bbox_loss
+        # print("loss with bbox: ", loss)
         return loss, nll_loss, ntokens
+    
+    def compute_bbox_loss(self, generator, lprobs, target, sample):
+        '''
+        lprobs shape: [26, 59457]
+        target shape: [26, 1]
+
+        lprobs:  tensor([[ -9.7679, -11.5233, -10.5523,  ..., -11.0178, -11.4471, -11.2739],
+        [-10.8818, -11.2606, -10.6506,  ..., -11.1683, -11.4382, -11.4560],
+        [-11.2819, -11.5219, -10.7650,  ..., -11.1123, -11.1373, -11.4442],
+        ...,
+        [ -9.6215, -11.2327, -10.6339,  ..., -10.9131, -11.4379, -11.2017],
+        [-11.2439, -11.4125, -11.2076,  ..., -11.1913, -11.1589, -11.1864],
+        [-11.1555, -10.7742, -10.7993,  ..., -10.9660, -11.1646, -11.0310]])
+
+        target:  tensor([[    3], [17531],[    3],[17531],[    3],[    2],[    3],[    3],[    2],[    3],[ 1657],[    3],[    3],[    3],[    3],
+                        [ 1657],[    3],[    3],[    3],[    3],[    3],[    3],[    2],[  462],[    3],[    2]])
+        
+        '''
+
+        indexes = sample["idx"].tolist()
+        bpe = None
+        lprobs = lprobs.argmin(dim=-1) # THIS is very important! don't comments off it!
+        bbox_loss_fn = nn.MSELoss()
+        loss_total = 0
+
+        # print("lprobs shape: ", lprobs.shape)
+        # print("target shape: ", target.shape)
+
+        # pdb.set_trace()
+
+
+        for i in range(len(indexes)):
+
+            lprobs_i = lprobs[i,:]
+            target_i = target[i,:]
+
+            lprobs_i = lprobs_i[target_i != self.padding_idx]
+            target_i = target_i[target_i != self.padding_idx]
+            
+            lprobs_i_decode = decode_fn(lprobs_i, self.task.tgt_dict, bpe, generator)
+            target_i_decode = decode_fn(target_i, self.task.tgt_dict, bpe, generator)
+
+            
+
+            lprobs_i_decode = lprobs_i_decode.split()
+            target_i_decode = target_i_decode.split()
+
+            # print("lprobs_i_decode: ", lprobs_i_decode)
+            # print("target_i_decode: ", target_i_decode)
+
+            
+            if len(lprobs_i_decode) == 0 or len(target_i_decode) == 0:
+                continue
+
+            lprobs_bbox_i = []
+            target_bbox_i = []
+            for j in range(len(lprobs_i_decode)):
+                if '<' in lprobs_i_decode[j] and lprobs_i_decode[j] != '<unk>' and lprobs_i_decode[j] != '<pad>':
+                    try:
+                        bbox_half_lprobs = lprobs_i_decode[j].split('_')[1]
+                        bbox_val_lprobs = int(bbox_half_lprobs.strip('>'))
+                        lprobs_bbox_i.append(bbox_val_lprobs)
+                    except:
+                        # continue
+                        print("Unexpected bbox from lropbs: ", lprobs_i_decode[j])
+            
+            for k in range(len(target_i_decode)):
+                if '<' in target_i_decode[k] and target_i_decode[k] != '<unk>':
+                    try:
+                        bbox_half_target = target_i_decode[k].split('_')[1]
+                        bbox_val_target = int(bbox_half_target.strip('>'))
+                        target_bbox_i.append(bbox_val_target)
+                    except:
+                        # continue
+                        print("Unexpected bbox from target: ", target_i_decode[k])
+
+            if len(lprobs_bbox_i) < len(target_bbox_i):
+                for l in range(len(target_bbox_i)-len(lprobs_bbox_i)):
+                    lprobs_bbox_i.append(0)
+            else:
+                for l in range(len(lprobs_bbox_i)-len(target_bbox_i)):
+                    target_bbox_i.append(0)
+            
+            lprobs_bbox_i = torch.Tensor(lprobs_bbox_i)
+            target_bbox_i = torch.Tensor(target_bbox_i)
+
+            assert lprobs_bbox_i.shape == target_bbox_i.shape
+
+            # print("lprobs_bbox_i: ", lprobs_bbox_i)
+            # print("target_bbox_i: ", target_bbox_i)
+
+
+            # loss = F.l1_loss(lprobs_bbox_i, target_bbox_i)
+            loss = bbox_loss_fn(lprobs_bbox_i, target_bbox_i)
+            loss_total += loss
+        
+        return loss_total / len(indexes)
 
     def compute_accuracy(self, model, net_output, sample):
-        lprobs, target, _ = self.get_lprobs_and_target(model, net_output, sample)
+        lprobs, lprobs_raw, target, target_raw, constraint_masks = self.get_lprobs_and_target(model, net_output, sample)
         # lprobs shape:  [1852, 59457]
         # target shape:  [1852]
         mask = target.ne(self.padding_idx)

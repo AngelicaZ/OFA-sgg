@@ -13,8 +13,8 @@ from argparse import Namespace
 from omegaconf import II
 
 import numpy as np
-from fairseq.fairseq import metrics, utils
-from fairseq.fairseq.data import (
+from fairseq import metrics, utils
+from fairseq.data import (
     AppendTokenDataset,
     ConcatDataset,
     LanguagePairDataset,
@@ -25,9 +25,9 @@ from fairseq.fairseq.data import (
     encoders,
     indexed_dataset,
 )
-from fairseq.fairseq.data.indexed_dataset import get_available_dataset_impl
-from fairseq.fairseq.dataclass import ChoiceEnum, FairseqDataclass
-from fairseq.fairseq.tasks import FairseqTask, register_task
+from fairseq.data.indexed_dataset import get_available_dataset_impl
+from fairseq.dataclass import ChoiceEnum, FairseqDataclass
+from fairseq.tasks import FairseqTask, register_task
 
 
 EVAL_BLEU_ORDER = 4

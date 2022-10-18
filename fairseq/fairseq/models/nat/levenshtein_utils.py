@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from fairseq.fairseq.utils import new_arange
+from fairseq.utils import new_arange
 
 
 # -------------- Helper Functions --------------------------------------------------- #

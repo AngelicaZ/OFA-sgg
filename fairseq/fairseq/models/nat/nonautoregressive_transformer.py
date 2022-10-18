@@ -5,12 +5,12 @@
 
 import torch
 import torch.nn.functional as F
-from fairseq.fairseq import utils
-from fairseq.fairseq.iterative_refinement_generator import DecoderOut
-from fairseq.fairseq.models import register_model, register_model_architecture
-from fairseq.fairseq.models.nat import FairseqNATDecoder, FairseqNATModel, ensemble_decoder
-from fairseq.fairseq.models.transformer import Embedding
-from fairseq.fairseq.modules.transformer_sentence_encoder import init_bert_params
+from fairseq import utils
+from fairseq.iterative_refinement_generator import DecoderOut
+from fairseq.models import register_model, register_model_architecture
+from fairseq.models.nat import FairseqNATDecoder, FairseqNATModel, ensemble_decoder
+from fairseq.models.transformer import Embedding
+from fairseq.modules.transformer_sentence_encoder import init_bert_params
 
 
 def _mean_pooling(enc_feats, src_masks):

@@ -15,12 +15,12 @@ import torch.nn.functional as F
 
 from .. import FairseqDataset
 from ..data_utils import compute_mask_indices, get_buckets, get_bucketed_sizes
-from fairseq.fairseq.data.audio.audio_utils import (
+from fairseq.data.audio.audio_utils import (
     parse_path,
     read_from_stored_zip,
     is_sf_audio_data,
 )
-from fairseq.fairseq.data.text_compressor import TextCompressor, TextCompressionLevel
+from fairseq.data.text_compressor import TextCompressor, TextCompressionLevel
 
 
 logger = logging.getLogger(__name__)
