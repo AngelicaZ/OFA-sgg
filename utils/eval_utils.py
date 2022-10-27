@@ -89,7 +89,6 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             index = sample["idx"].tolist()[i]
             bpe = None
             detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, bpe, generator)
-            # print("detok_hypo_str raw: ", detok_hypo_str)
             detok_hypo_str = task.bpe.decode(detok_hypo_str)
             detok_hypo_str = detok_hypo_str.replace('&&', ' ')
             # print("detok_hypo_str after bpe decode: ", detok_hypo_str)
@@ -99,12 +98,13 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             #     else:
             #         detok_hypo_str[j] = task.bpe.decode(detok_hypo_str[j])
             # detok_hypo_str = detok_hypo_str.split('&&')
-            results[sample_id] = detok_hypo_str
+            result_id = str(sample_id) + '_' + str(index)
+            results[result_id] = detok_hypo_str
 
             # img_name = sample_id + ".jpg"
             # image_path = img_dir + img_name
             # print("image path: ", image_path)
-            # print("pred_sentence:", results[sample_id])
+            # print("pred_sentence:", results[result_id])
             # img, target_seq, target_seq_raw, imageid, src_text, _ = dataset[index]
             # print("gt_sentence: ", target_seq_raw)
             # print("\n")
@@ -417,7 +417,7 @@ def merge_results(task, cfg, logger, score_cnt, score_sum, results):
 
         if cfg.distributed_training.distributed_world_size == 1 or dist.get_rank() == 0:
             os.makedirs(cfg.common_eval.results_path, exist_ok=True)
-            output_path = os.path.join(cfg.common_eval.results_path, "{}_1016bobbox_predict.json".format(cfg.dataset.gen_subset))
+            output_path = os.path.join(cfg.common_eval.results_path, "{}_1021debugbbox_predict.json".format(cfg.dataset.gen_subset))
             gather_results = list(chain(*gather_results)) if gather_results is not None else results
             with open(output_path, 'w') as fw:
                 json.dump(gather_results, fw)

@@ -70,7 +70,8 @@ def crop(image, target, region, delete=True):
 def hflip(image, target):
     flipped_image = F.hflip(image)
 
-    w, h = image.size
+    # print("image size: ", image.size)
+    (w, h) = image.size
 
     target = target.copy()
     if "boxes" in target:
@@ -288,12 +289,20 @@ class LargeScaleJitter(object):
 
         if "boxes" in target:
             boxes = target["boxes"]
+            # print("boxes: ", boxes)
+            # print("ratio_width: ", ratio_width)
+            # print("ratio_height: ", ratio_height)
+            # print("ratio_width: ", ratio_width)
+            # print("ratio_height: ", ratio_height)
+
             scaled_boxes = boxes * torch.as_tensor([ratio_width, ratio_height, ratio_width, ratio_height])
             target["boxes"] = scaled_boxes
 
         if "area" in target:
             area = target["area"]
+            # print("area: ", area)
             scaled_area = area * (ratio_width * ratio_height)
+            # print("scaled_area: ", scaled_area)
             target["area"] = scaled_area
 
         if "masks" in target:
@@ -338,6 +347,7 @@ class LargeScaleJitter(object):
                 keep = target['masks'].flatten(1).any(1)
 
             for field in fields:
+                # print("field: ", field)
                 target[field] = target[field][keep.tolist()]
         return target
 
@@ -349,6 +359,7 @@ class LargeScaleJitter(object):
 
     def __call__(self, image, target=None):
         image_size = image.size
+        # print("image_size: ", image_size)
         image_size = torch.tensor(image_size[::-1])
 
         random_scale = torch.rand(1) * (self.aug_scale_max - self.aug_scale_min) + self.aug_scale_min

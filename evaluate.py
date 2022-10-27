@@ -10,10 +10,10 @@ import sys
 
 import numpy as np
 import torch
-from fairseq.fairseq import distributed_utils, options, tasks, utils
-from fairseq.fairseq.dataclass.utils import convert_namespace_to_omegaconf
-from fairseq.fairseq.logging import progress_bar
-from fairseq.fairseq.utils import reset_logging
+from fairseq import distributed_utils, options, tasks, utils
+from fairseq.dataclass.utils import convert_namespace_to_omegaconf
+from fairseq.logging import progress_bar
+from fairseq.utils import reset_logging
 from omegaconf import DictConfig
 
 from utils import checkpoint_utils

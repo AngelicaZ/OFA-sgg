@@ -1,5 +1,6 @@
 import logging
 import os
+import pdb
 import torch
 import numpy as np
 import json
@@ -18,7 +19,7 @@ from .sgg_eval import SGRecall, SGNoGraphConstraintRecall, SGZeroShotRecall, SGN
 def do_vg_evaluation(
     cfg,
     dataset,
-    predictions,
+    predictions_raw,
     output_folder,
     logger,
     iou_types,
@@ -43,18 +44,23 @@ def do_vg_evaluation(
     assert mode in {'predcls', 'sgdet', 'sgcls', 'phrdet', 'preddet'}
 
     groundtruths = []
-    for image_id, prediction in predictions.items():
-        img_info = dataset.get_img_info(image_id)
-        image_width = img_info["width"]
-        image_height = img_info["height"]
-        # # recover original size which is before transform
-        # predictions[image_id] = prediction.resize((image_width, image_height))
+    predictions = dict()
+    for pred in predictions_raw:
+        if type(pred) != dict:
+            continue
+        for result_id, prediction in pred.items():
+            image_idx = int(result_id.split('_')[1])
+            img_info = dataset.get_img_info(image_idx)
+            image_width = img_info["width"]
+            image_height = img_info["height"]
+            # # recover original size which is before transform
+            # predictions[image_id] = prediction.resize((image_width, image_height))
 
-        # prediction is a sequence
-        predictions[image_id] = prediction
+            # prediction is a sequence
+            predictions[image_idx] = prediction
 
-        gt = dataset.get_groundtruth(image_id, evaluation=True)
-        groundtruths.append(gt)
+            gt = dataset.get_groundtruth(image_idx, evaluation=True)
+            groundtruths.append(gt)
 
     save_output(output_folder, groundtruths, predictions, dataset)
     
@@ -88,21 +94,22 @@ def do_vg_evaluation(
 
         # format predictions to coco-like
         cocolike_predictions = []
-        for image_id, prediction in predictions.items():
+        for image_idx, prediction in predictions.items():
             # box = prediction.convert('xywh').bbox.detach().cpu().numpy() # xywh
             # score = prediction.get_field('pred_scores').detach().cpu().numpy() # (#objs,)
             # label = prediction.get_field('pred_labels').detach().cpu().numpy() # (#objs,)
 
-            box, label, score = prepare_prediction(prediction, dataset)
+            prepare_pred = prepare_prediction(prediction, dataset)
+            box, label, score = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score
 
             # for predcls, we set label and score to groundtruth
             # if mode == 'predcls':
             #     label = prediction.get_field('labels').detach().cpu().numpy()
             #     score = np.ones(label.shape[0])
             #     assert len(label) == len(box)
-            image_id = np.asarray([image_id]*len(box))
+            image_idx = np.asarray([image_idx]*len(box))
             cocolike_predictions.append(
-                np.column_stack((image_id, box, score, label))
+                np.column_stack((image_idx, box, score, label))
                 )
             # logger.info(cocolike_predictions)
         cocolike_predictions = np.concatenate(cocolike_predictions, 0)
@@ -167,8 +174,14 @@ def do_vg_evaluation(
         global_container['attribute_on'] = attribute_on
         global_container['num_attributes'] = num_attributes
         
-        for groundtruth, prediction in zip(groundtruths, predictions):
-            evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator)
+        for groundtruth, prediction in zip(groundtruths, predictions.values()):
+            # print("predictions raw: ", list(predictions.keys())[:10])
+            # print("ground truth: ", groundtruth)
+            # print("prediction before calculate relation: ", prediction)
+            # pred_local = prepare_prediction(prediction, dataset)
+            # relation_local = pred_local.relation
+            # if len(relation_local) != 0:
+            evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator, dataset)
         
         # calculate mean recall
         eval_mean_recall.calculate_mean_recall(mode)
@@ -198,93 +211,162 @@ def do_vg_evaluation(
     else:
         return -1
 
-def prepare_prediction(prediction, dataset, pred_mode=0):
+class prepare_prediction():
+    def __init__(self, prediction, dataset, pred_mode=0) -> None:
+        super().__init__()
+        self.prediction = prediction
+        self.dataset = dataset
+        self.pred_mode = pred_mode
+        self.box = []
+        self.label = []
+        self.score = []
+        self.relation = []
 
-    '''
-    prediction seq example: 
-    Cat x y x y is on mat x y x y, inside house x y x y.
+        '''
+        prediction seq example: 
+        Cat x y x y is on mat x y x y, inside house x y x y.
+        giraffe <bin_0><bin_0><bin_997><bin_996> is has head <bin_0><bin_3><bin_997><bin_996><bin_996> .
 
-    '''
+        '''
+        box_raw = []
+        obj_names = []
+        relation_raw = []
+        # print("prediction: ", prediction)
+        try:
+            pred_sentences = self.prediction.split('.')
+        except:
+            print("prediction: ", self.prediction)
+            pred_sentences = str(self.prediction)
+        for pred_sentence in pred_sentences:
+            pred_tokens = pred_sentence.split()
+            for j, word in enumerate(pred_tokens):
+                # print("word: ", word)
+                # bbox
+                if '<' in word:
+                    try:
+                        if '<' not in pred_tokens[j-1]:
+                            obj_name = pred_tokens[j-1]
+                        else:
+                            continue
+                        bbox = []
+                        temp0 = word.split('><')
+                        for m in temp0:
+                            temp1 = m.split('_')
+                            for n in temp1:
+                                if n.isnumeric():
+                                    bbox.append(int(n))
+                                else:
+                                    temp2 = n.split('>')
+                                    for k in temp2:
+                                        if k.isnumeric():
+                                            bbox.append(int(k))
+                        # bbox: xyxy
+                        if len(bbox) < 4:
+                            # print("Non-compliant bbox in prediction: ", bbox)
+                            continue
+                        # bbox[2] = max(bbox[2] - bbox[0], 0) # convert to xywh
+                        # bbox[3] = max(bbox[3] - bbox[1], 0)
+                        if len(bbox) > 4:
+                            bbox = bbox[:4]   
 
-    box_raw = []
-    label = []
-    relation_raw = []
-    for j in range(len(prediction)):
-        if '<' in prediction[j] and (prediction[j] != '<unk>' or '<mask>'):
-            try:
-                bbox_half_pred = prediction[j].split('_')[1]
-                bbox_val_pred = int(bbox_half_pred.strip('>'))
-                box_raw.append(bbox_val_pred)
-            except:
-                print("Unexpected bbox from lropbs: ", prediction[j])
-        # label
-        elif j != len(prediction)-1 and ('<' in prediction[j+1] and (prediction[j+1] != '<unk>' or '<mask>')):
-            l_idx = dataset.class_to_ind[prediction[j]]
-            label.append(l_idx)
+                        # label
+                        if obj_name in self.dataset.class_to_ind.keys():
+                            l_idx = self.dataset.class_to_ind[obj_name]
+                            self.label.append(l_idx)
+                            obj_names.append(obj_name)
+                            box_raw.append(bbox)
+                        else:
+                            continue
+                    except:
+                        print("unexpected token: ", word)
+                
+                # conjunctions
+                elif word in ['is',',' ,'.']:
+                    continue
+                    
+                # relations
+                else:
+                    r_raw_list = []
+                    if pred_tokens[j-1] == 'is':
+                        while '<' not in pred_tokens[j+1]:
+                            r_raw_list.append(pred_tokens[j])
+                            j += 1
+                        r_raw = ' '.join(r_raw_list)
+                        
+                        if pred_tokens[0] in obj_names:
+                            obj0_name = pred_tokens[0]
+                            obj1_name = pred_tokens[j]
+                            relation_raw.append((obj0_name, obj1_name, r_raw))
+                            # print("obj0: ", obj0_name)
+                            # print("obj1: ", obj1_name)
+                        else:
+                            '''
+                            bad pred sentence example:
+                            Cannot find the objects to relation! Obj name:  sneaker
+                            obj_names:  ['building', 'window', 'building', 'street', 'car', 'bus', 'windshield']
+                            pred sentence:  building <bin_0><bin_0><bin_997><bin_996> is has window <bin_0><bin_3><bin_997><bin_99
+                            6>is . building <bin_2><bin_0><bin_995><bin_996> , on street <bin_0><bin_835><bin_996><bin_996> .. car
+                             <bin_0><bin_765><bin_997><bin_996>sitting in front of bus <bin_3><bin_0><bin_995><bin_990> is<bin_0>h
+                            as windshield <bin_4><bin_0><bin_995><bin_987> .sneaker <bin_0><bin_855><bin_0><bin_995> is. man <bin_
+                            12><bin_0><bin_995><bin_986> istire <bin_0><bin_675><bin_997><bin_996><bin_997> .<bin_0>
+                            '''
+                            # print("Cannot find the objects to relation! Obj name: ", pred_tokens[0])
+                            # print("obj_names: ", obj_names)
+                            # print("pred sentence: ", self.prediction)
+                            continue
+                    
+                    else:
+                        continue
         
-        # conjunctions
-        elif prediction[j] == 'is' or ',' or '.':
-            continue
-            
-        # relations
-        else:
-            r_raw = prediction[j]
-            relation_raw.append(r_raw)
+        # print("label: ", self.label)
+        # print("relation raw: ", relation_raw)
+        
+
+        # bbox
+        num_box = len(box_raw)
+        try:
+            assert len(self.label) == num_box
+        except:
+            print("prediction: ", prediction)
+            print("label: ", self.label)
+            print("obj_names: ", obj_names)
+            print("bbox: ", box_raw)
+            pdb.set_trace()
+        self.box = np.zeros((num_box, 4))
+        for i in range(num_box):
+            self.box[i, :] = box_raw[i]
+ 
+        # label
+        self.label = np.asarray(self.label)
+        
+        # relation
+        for (obj0_name, obj1_name, r_raw) in relation_raw:
+            try:
+                index0 = obj_names.index(obj0_name)
+                index1 = obj_names.index(obj1_name)
+                r_index = self.dataset.predicate_to_ind[r_raw]
+                self.relation.append([index0, index1, r_index])
+            except:
+                print("obj0_name: ", obj0_name)
+                print("obj1_name: ", obj1_name)
+                print("relation: ", r_raw)
+        self.relation = np.asarray(self.relation)
+
+
+        # scores are all 1
+        self.score = np.ones(self.box.shape[0])
+
+        # if pred_mode == 1:
+        #     box = box.tolist()
+        #     label = label.tolist()
     
-
-    # bbox
-    num_box = len(box_raw)/4
-    box = np.zeros(num_box, 4)
-    for i in range(num_box):
-        box[i, :] = box_raw[4*i, 4*i+3]
+    def get_bbox(self):
+        return self.box
     
-    # relation
-    relation  = []
-    flag = [0, 0, 0]
-    for i in range(len(relation_raw)):
-        if flag == [1, 0, 0]:
-            continue
-        elif flag == [1, 1, 0]:
-            flag = [1, 0, 0]
-            continue
-        elif flag == [1, 1, 1]:
-            flag = [1, 1, 0]
-            continue
+    def get_label(self):
+        return self.label
 
-        if relation_raw[i] in dataset.ind_to_predicates:
-            relation.append(dataset.ind_to_predicates[relation_raw[i]])
-
-        elif i != len(relation_raw)-1 and ((relation_raw[i]+' '+relation_raw[i+1]) in dataset.ind_to_predicates):
-            r = relation_raw[i]+' '+relation_raw[i+1]
-            relation.append(dataset.ind_to_predicates[r])
-            flag = [1, 0, 0]
-
-        elif i != len(relation_raw)-2 and ((relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]) in dataset.ind_to_predicates):
-            r = relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]
-            relation.append(dataset.ind_to_predicates[r])
-            flag = [1, 1, 0]
-
-        elif i != len(relation_raw)-3 and ((relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]+' '+relation_raw[i+3]) in dataset.ind_to_predicates):
-            r = relation_raw[i]+' '+relation_raw[i+1]+' '+relation_raw[i+2]+' '+relation_raw[i+3]
-            relation.append(dataset.ind_to_predicates[r])
-            flag = [1, 1, 1]
-
-        else:
-            print("Not find relation: ", relation_raw[i])
-
-    # TODO: convert to relation tuple
-
-
-
-    # scores are all 1
-    score = np.ones(box.shape[0])
-
-    if pred_mode == 1:
-        box = box.tolist()
-        label = label.tolist()
     
-    return box, label, score, relation
-
 
 def save_output(output_folder, groundtruths, predictions, dataset):
     if output_folder:
@@ -294,16 +376,20 @@ def save_output(output_folder, groundtruths, predictions, dataset):
         #    f.write(result_str)
         # visualization information
         visual_info = []
-        for image_id, (groundtruth, prediction) in enumerate(zip(groundtruths, predictions)):
+        for image_id, (groundtruth, prediction) in enumerate(zip(groundtruths, predictions.values())):
+            # print("prediction in save output: ", prediction)
             img_file = os.path.abspath(dataset.filenames[image_id])
             groundtruth = [
                 [b[0], b[1], b[2], b[3], dataset.categories[l]] # xyxy, str
                 for b, l in zip(groundtruth.bbox.tolist(), groundtruth.get_field('labels').tolist())
                 ]
+            # print("ground truth: ", groundtruth)
             prediction = [
                 [b[0], b[1], b[2], b[3], dataset.categories[l]] # xyxy, str
-                for b, l, s, r in zip(prepare_prediction(prediction, dataset, pred_mode=1))
+                for b, l in zip(prepare_prediction(prediction, dataset, pred_mode=1).get_bbox(),prepare_prediction(prediction, dataset, pred_mode=1).get_label())
                 ]
+            # print("prediction: ", prediction)
+            # pdb.set_trace()
             visual_info.append({
                 'img_file': img_file,
                 'groundtruth': groundtruth,
@@ -314,7 +400,7 @@ def save_output(output_folder, groundtruths, predictions, dataset):
 
 
 
-def evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator):
+def evaluate_relation_of_one_image(groundtruth, prediction, global_container, evaluator, dataset):
     """
     Returns:
         pred_to_gt: Matching from predicate to GT
@@ -327,6 +413,9 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container = {}
     local_container['gt_rels'] = groundtruth.get_field('relation_tuple').long().detach().cpu().numpy()
 
+    # print("gt_rels: ", local_container['gt_rels'])
+    
+
     # if there is no gt relations for current image, then skip it
     if len(local_container['gt_rels']) == 0:
         return
@@ -335,13 +424,25 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container['gt_classes'] = groundtruth.get_field('labels').long().detach().cpu().numpy()           # (#gt_objs, )
 
 
-    box, label, score, relation = prepare_prediction(prediction)
+    prepare_pred = prepare_prediction(prediction, dataset)
+    box, label, score, relation = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score, prepare_pred.relation
+
+    
+    
 
     # about relations
     # local_container['pred_rel_inds'] = prediction.get_field('rel_pair_idxs').long().detach().cpu().numpy()  # (#pred_rels, 2)
     # local_container['rel_scores'] = prediction.get_field('pred_rel_scores').detach().cpu().numpy()          # (#pred_rels, num_pred_class)
     local_container['pred_rel_inds'] = relation
-    local_container['rel_scores'] = np.ones(len(relation))
+    local_container['rel_scores'] = np.ones((len(relation), 1))
+    # print("pred_rel_inds: ", local_container['pred_rel_inds'])
+    # print("rel_scores: ", local_container['rel_scores'])
+
+    # if there is no predict relations for current image, then skip it
+    if len(local_container['pred_rel_inds']) == 0:
+        return
+
+    # pdb.set_trace()
 
     # about objects
     # local_container['pred_boxes'] = prediction.convert('xyxy').bbox.detach().cpu().numpy()                  # (#pred_objs, 4)
@@ -350,8 +451,6 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container['pred_boxes'] = box
     local_container['pred_classes'] = label
     local_container['obj_scores'] = score
-
-    
 
     # to calculate accuracy, only consider those gt pairs
     # This metric is used by "Graphical Contrastive Losses for Scene Graph Parsing" 
@@ -370,7 +469,8 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
 
     elif mode == 'sgcls':
         if local_container['gt_boxes'].shape[0] != local_container['pred_boxes'].shape[0]:
-            print('Num of GT boxes is not matching with num of pred boxes in SGCLS')
+            # print('Num of GT boxes is not matching with num of pred boxes in SGCLS')
+            pass
     elif mode == 'sgdet' or mode == 'phrdet':
         pass
     else:

@@ -7,11 +7,12 @@ from tqdm import tqdm
 from functools import reduce
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+import pdb
 
-from maskrcnn_benchmark.data import get_dataset_statistics
-from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
-from maskrcnn_benchmark.utils.miscellaneous import intersect_2d, argsort_desc, bbox_overlaps
+# from maskrcnn_benchmark.data import get_dataset_statistics
+# from maskrcnn_benchmark.structures.bounding_box import BoxList
+# from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+from .utils import intersect_2d, argsort_desc, bbox_overlaps
 
 from abc import ABC, abstractmethod
 
@@ -63,8 +64,12 @@ class SGRecall(SceneGraphEvaluation):
 
         iou_thres = global_container['iou_thres']
 
-        pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,1:].argmax(1)))
-        pred_scores = rel_scores[:,1:].max(1)
+
+        # pdb.set_trace()
+        # pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,1:].argmax(1)))
+        pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,:].argmax(1)))
+        # pred_scores = rel_scores[:,1:].max(1)
+        pred_scores = rel_scores[:,:].max(1)
 
         gt_triplets, gt_triplet_boxes, _ = _triplet(gt_rels, gt_classes, gt_boxes)
         local_container['gt_triplets'] = gt_triplets
@@ -118,11 +123,15 @@ class SGNoGraphConstraintRecall(SceneGraphEvaluation):
         pred_classes = local_container['pred_classes']
         gt_rels = local_container['gt_rels']
 
-        obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
-        nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,1:]
+        # obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
+        obj_scores_per_rel = obj_scores[pred_rel_inds[:,:2]].prod(1)
+        # nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,1:]
+        nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,:]
         nogc_score_inds = argsort_desc(nogc_overall_scores)[:100]
-        nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]+1))
-        nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,1]+1]
+        # nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]+1))
+        nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]))
+        # nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,1]+1]
+        nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,1]]
 
         nogc_pred_triplets, nogc_pred_triplet_boxes, _ = _triplet(
                 nogc_pred_rels, pred_classes, pred_boxes, nogc_pred_scores, obj_scores

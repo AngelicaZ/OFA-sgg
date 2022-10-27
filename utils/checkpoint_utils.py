@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def save_checkpoint(cfg: CheckpointConfig, trainer, epoch_itr, val_loss):
-    from fairseq.fairseq import meters
+    from fairseq import meters
 
     # only one worker should attempt to create the required dir
     if trainer.data_parallel_rank == 0:
@@ -413,7 +413,7 @@ def load_model_ensemble_and_task(
 ):
     assert state is None or len(filenames) == 1
 
-    from fairseq.fairseq import tasks
+    from fairseq import tasks
 
     assert not (
         strict and num_shards > 1

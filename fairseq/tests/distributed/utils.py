@@ -5,6 +5,7 @@
 
 import functools
 import tempfile
+import datetime
 
 import torch
 
@@ -25,6 +26,7 @@ def distributed_init(rank, world_size, tmp_file):
     torch.distributed.init_process_group(
         backend="nccl",
         init_method="file://{}".format(tmp_file),
+        timeout=datetime.timedelta(seconds=300000),
         world_size=world_size,
         rank=rank,
     )

@@ -1,5 +1,5 @@
 
-export MASTER_PORT=8087
+export MASTER_PORT=4081
 # 8087, 4081, 3053, 3054, 3055
 export CUDA_VISIBLE_DEVICES=4,5,6,7
 export GPUS_PER_NODE=4
@@ -17,7 +17,7 @@ data=${base_dir}/VG-SGG-with-attri.h5
 # image_file=${base_dir}/image_data.json
 
 checkpoint=checkpoint_best
-paras=VG_1016_nobbox_10_1e-4_ofa_tiny_350
+paras=VG_1021_debugbbox_10_1e-4_ofa_tiny_350
 path=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 result_path=../../results/sgg/VG
 # selected_cols=1,4,2

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional
 import sys
 import time
+import datetime
 
 import torch
 import torch.distributed as dist
@@ -265,6 +266,7 @@ def distributed_init(cfg: FairseqConfig):
                     dist.init_process_group(
                         backend=cfg.distributed_training.distributed_backend,
                         init_method=cfg.distributed_training.distributed_init_method,
+                        timeout=datetime.timedelta(seconds=300000),
                         world_size=cfg.distributed_training.distributed_world_size,
                         rank=cfg.distributed_training.distributed_rank,
                     )
