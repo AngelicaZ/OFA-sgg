@@ -17,7 +17,7 @@ data=${base_dir}/VG-SGG-with-attri.h5
 # image_file=${base_dir}/image_data.json
 
 checkpoint=checkpoint_best
-paras=VG_1021_debugbbox_10_1e-4_ofa_tiny_350
+paras=VG_1111_debug_10_1e-4_ofa_tiny_50
 path=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 result_path=../../results/sgg/VG
 # selected_cols=1,4,2

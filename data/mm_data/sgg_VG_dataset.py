@@ -65,6 +65,7 @@ def collate(samples, pad_idx, eos_idx):
         ntokens = src_lengths.sum().item()
     
     # target shape: [4, 9] or [4, 10] or [4, 11]
+    # print("target: ", target)
     
     batch = {
         "id": id,
@@ -189,10 +190,12 @@ class VGDatasetReader(Dataset):
                  transforms=None,
                  filter_empty_rels=True, 
                  required_len=None,
-                 num_im=-1, 
-                 num_val_im=5000,
+                 num_im=10000, 
+                 num_val_im=4,
                  code_image_size=128,
                  max_image_size=512,
+                 patch_image_size=512,
+                 imagenet_default_mean_and_std=False,
                  filter_duplicate_rels=True, 
                  filter_non_overlap=True, 
                  flip_aug=False,   # flip augmentation
@@ -216,6 +219,9 @@ class VGDatasetReader(Dataset):
         # for debug
         # num_im = 10000
         # num_val_im = 4
+        # normal (not debugging):
+        # num_im = -1
+        # num_val_im = 5000
 
         assert split in {'train', 'valid', 'test'}
         self.flip_aug = flip_aug
@@ -256,6 +262,19 @@ class VGDatasetReader(Dataset):
             T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], max_image_size=max_image_size)
         ])
 
+        if imagenet_default_mean_and_std:
+            mean = IMAGENET_DEFAULT_MEAN
+            std = IMAGENET_DEFAULT_STD
+        else:
+            mean = [0.5, 0.5, 0.5]
+            std = [0.5, 0.5, 0.5]
+
+        self.positioning_transform = T.Compose([
+            T.RandomResize([patch_image_size], max_size=patch_image_size),
+            T.ToTensor(),
+            T.Normalize(mean=mean, std=std, max_image_size=max_image_size)
+        ])
+
 
 
     def __getitem__(self, index):
@@ -278,6 +297,7 @@ class VGDatasetReader(Dataset):
 
         target_seq, img = self.target2seq(img, target, self.required_len)
         # target_seq_raw = self.target2seq_raw(img, target, self.required_len)
+        # target_mask = torch.zeros(len(target_seq_raw))
         # print("target in raw dataset: ", target_seq)
 
         src_text = 'Parse image.'
@@ -296,8 +316,23 @@ class VGDatasetReader(Dataset):
             boxes_target["labels"] = np.array([0])
             boxes_target["area"].append((float(bbox[:,2]) - float(bbox[:,0])) * (float(bbox[:,3]) - float(bbox[:,1])))
             boxes_target["area"] = torch.tensor(boxes_target["area"])
-            patch_image, bbox = self.detection_transform(image, boxes_target)
+            patch_image, bbox_new = self.positioning_transform(image, boxes_target)
+            bbox_value = bbox_new['boxes']
+            # print("bbox after transform: ", [t.detach().numpy() for t in bbox_new['boxes']])
+            # pdb.set_trace()
 
+
+
+
+            # # for debugging
+            # bbox = torch.tensor([200/w, 200/h, 300/w, 300/h])
+            # patch_image, _ = self.detection_transform(image, boxes_target)
+
+            # print("bbox_value: ", bbox_value)
+            # pdb.set_trace()
+
+
+            # print("bbox: ", bbox)
             obj_id = target.extra_fields['labels'][i]
             attrs_id = target.extra_fields['attributes'][i, :]
             relations_id = target.extra_fields['relation'][i, :]
@@ -306,35 +341,39 @@ class VGDatasetReader(Dataset):
                 continue
             else:
                 obj_name = self.ind_to_classes[obj_id]
-                seq.append(obj_name)
-                seq.append("<bin_{}>".format(str(round(bbox[0].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox[1].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox[2].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox[3].item() * 999))))
-                seq.append('is')
+                seq.append(self.bpe.encode(obj_name + '&&'))
+                # seq.append(self.bpe.encode(obj_name))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][0].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][1].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][2].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][3].item() * 999))))
+                seq.append(self.bpe.encode('&&is&&'))
+                # seq.append(self.bpe.encode('is'))
                 rel_cnt = 0
                 for j in range(obj_num):
                     if relations_id[j] != 0:
                         rel_cnt += 1
                         obj2_id = target.extra_fields['labels'][j]
-                        # print("obj2 id: ", obj2_id.item())
-                        # pdb.set_trace()
                         obj2_name = self.ind_to_classes[obj2_id]
                         rel_id = relations_id[j]
                         rel_name = self.ind_to_predicates[rel_id]
                         rel_name_words = rel_name.split(' ')
                         for k in range(len(rel_name_words)):
-                            seq.append(rel_name_words[k])
-                        seq.append(obj2_name)
+                            seq.append(self.bpe.encode(rel_name_words[k] + '&&'))
+                            # seq.append(self.bpe.encode(rel_name_words[k]))
+                        seq.append(self.bpe.encode(obj2_name + '&&'))
+                        # seq.append(self.bpe.encode(obj2_name))
                         bbox2 = target.bbox[j, :]
-                        seq.append("<bin_{}>".format(str(round(bbox2[0].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[1].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[2].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[3].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][0].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][1].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][2].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][3].item() * 999))))
                         if rel_cnt < rel_num:
-                            seq.append(',')
+                            seq.append(self.bpe.encode('&&,&&'))
+                            # seq.append(self.bpe.encode(','))
                         else:
-                            seq.append('.')
+                            seq.append(self.bpe.encode('&&.&&'))
+                            # seq.append(self.bpe.encode('.'))
         
         seq_len = len(seq)
         if required_len:
@@ -342,7 +381,6 @@ class VGDatasetReader(Dataset):
                 seq = seq[:required_len]
         
         return seq
-
 
 
     def target2seq(self, image, target, required_len=None):
@@ -367,16 +405,20 @@ class VGDatasetReader(Dataset):
             boxes_target["labels"] = np.array([0])
             boxes_target["area"].append((float(bbox[:,2]) - float(bbox[:,0])) * (float(bbox[:,3]) - float(bbox[:,1])))
             boxes_target["area"] = torch.tensor(boxes_target["area"])
-            # patch_image, bbox = self.detection_transform(image, boxes_target)
+            patch_image, bbox_new = self.positioning_transform(image, boxes_target)
+            bbox_value = bbox_new['boxes']
+            # print("bbox after transform: ", [t.detach().numpy() for t in bbox_new['boxes']])
+            # pdb.set_trace()
 
 
 
 
-            # for debugging
-            bbox = torch.tensor([200/w, 200/h, 300/w, 300/h])
-            patch_image, _ = self.detection_transform(image, boxes_target)
+            # # for debugging
+            # bbox = torch.tensor([200/w, 200/h, 300/w, 300/h])
+            # patch_image, _ = self.detection_transform(image, boxes_target)
 
-
+            # print("bbox_value: ", bbox_value)
+            # pdb.set_trace()
 
 
             # print("bbox: ", bbox)
@@ -390,10 +432,10 @@ class VGDatasetReader(Dataset):
                 obj_name = self.ind_to_classes[obj_id]
                 seq.append(self.bpe.encode(obj_name + '&&'))
                 # seq.append(self.bpe.encode(obj_name))
-                seq.append("<bin_{}>".format(str(round(bbox[0].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox[1].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox[2].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox[3].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][0].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][1].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][2].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[0][3].item() * 999))))
                 seq.append(self.bpe.encode('&&is&&'))
                 # seq.append(self.bpe.encode('is'))
                 rel_cnt = 0
@@ -411,10 +453,10 @@ class VGDatasetReader(Dataset):
                         seq.append(self.bpe.encode(obj2_name + '&&'))
                         # seq.append(self.bpe.encode(obj2_name))
                         bbox2 = target.bbox[j, :]
-                        seq.append("<bin_{}>".format(str(round(bbox2[0].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[1].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[2].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[3].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][0].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][1].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][2].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[0][3].item() * 999))))
                         if rel_cnt < rel_num:
                             seq.append(self.bpe.encode('&&,&&'))
                             # seq.append(self.bpe.encode(','))
@@ -495,8 +537,8 @@ class VGDatasetReader(Dataset):
             old_size = relation.shape[0]
             all_rel_sets = defaultdict(list)
             for (o0, o1, r) in relation:
-                print("o0: ", o0)
-                print("o1: ", o1)
+                # print("o0: ", o0)
+                # print("o1: ", o1)
                 all_rel_sets[(o0, o1)].append(r)
             relation = [(k[0], k[1], np.random.choice(v)) for k,v in all_rel_sets.items()]
             relation = np.array(relation, dtype=np.int32)
@@ -696,9 +738,9 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
     split_flag = 2 if split == 'test' else 0
 
     # to reduce the number of test image for debugging
-    if split == 'test':
-        for i in range(78000, len(data_split)):
-            data_split[i] = 0
+    # if split == 'test':
+    #     for i in range(78000, len(data_split)):
+    #         data_split[i] = 0
     
 
     split_mask = data_split == split_flag # (108073,)

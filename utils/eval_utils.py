@@ -74,17 +74,17 @@ def eval_sgg(task, generator, models, sample, **kwargs):
         split = 'test'
         # print("split: ", split)
 
-        # dataset = VGDatasetReader(
-        #     split, 
-        #     img_dir, 
-        #     roidb_file, 
-        #     dict_file, 
-        #     image_file,
-        #     bpe=task.bpe,
-        #     num_im=-1,
-        #     num_val_im=5000,
-        #     required_len=tgt_seq_len
-        # )
+        dataset = VGDatasetReader(
+            split, 
+            img_dir, 
+            roidb_file, 
+            dict_file, 
+            image_file,
+            bpe=task.bpe,
+            num_im=-1,
+            num_val_im=5000,
+            required_len=tgt_seq_len
+        )
         for i, sample_id in enumerate(sample["id"].tolist()):
             index = sample["idx"].tolist()[i]
             bpe = None
@@ -101,13 +101,20 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             result_id = str(sample_id) + '_' + str(index)
             results[result_id] = detok_hypo_str
 
-            # img_name = sample_id + ".jpg"
-            # image_path = img_dir + img_name
-            # print("image path: ", image_path)
-            # print("pred_sentence:", results[result_id])
-            # img, target_seq, target_seq_raw, imageid, src_text, _ = dataset[index]
-            # print("gt_sentence: ", target_seq_raw)
-            # print("\n")
+            img_name = sample_id + ".jpg"
+            image_path = img_dir + img_name
+            print("image path: ", image_path)
+            print("pred_sentence:", results[result_id])
+            img, target_seq, imageid, src_text, _ = dataset[index]
+            for j in range(len(target_seq)):
+                if '<' in target_seq[j]:
+                    continue
+                else:
+                    target_seq[j] = task.bpe.decode(target_seq[j])
+                    target_seq[j] = target_seq[j].replace('&&', ' ')
+            
+            print("gt_sentence: ", target_seq)
+            print("\n")
             
     else:
         raise NotImplementedError
@@ -417,7 +424,7 @@ def merge_results(task, cfg, logger, score_cnt, score_sum, results):
 
         if cfg.distributed_training.distributed_world_size == 1 or dist.get_rank() == 0:
             os.makedirs(cfg.common_eval.results_path, exist_ok=True)
-            output_path = os.path.join(cfg.common_eval.results_path, "{}_1021debugbbox_predict.json".format(cfg.dataset.gen_subset))
+            output_path = os.path.join(cfg.common_eval.results_path, "{}_1111debug_predict.json".format(cfg.dataset.gen_subset))
             gather_results = list(chain(*gather_results)) if gather_results is not None else results
             with open(output_path, 'w') as fw:
                 json.dump(gather_results, fw)

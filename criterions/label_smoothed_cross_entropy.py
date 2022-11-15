@@ -274,7 +274,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         if constraint_masks is not None:
             constraint_masks = constraint_masks[target != self.padding_idx]
         
-        bbox_loss = self.compute_bbox_loss(generator, lprobs_raw, target_raw, sample)
+        # bbox_loss = self.compute_bbox_loss(generator, lprobs_raw, target_raw, sample)
         # print("bbox_loss: ", bbox_loss)
         lprobs = lprobs[target != self.padding_idx]
         target = target[target != self.padding_idx] # [26]
@@ -295,7 +295,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         # print("loss: ", loss)
         bbox_weight_l2 = 1.0 / 2000
         bbox_weight_l1 = 3.0
-        loss += bbox_weight_l2 * bbox_loss
+        # loss += bbox_weight_l2 * bbox_loss
         # print("loss with bbox: ", loss)
         return loss, nll_loss, ntokens
     

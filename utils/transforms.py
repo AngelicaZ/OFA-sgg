@@ -10,6 +10,7 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as F
 import numpy as np
 from PIL import Image
+import pdb
 
 
 def crop(image, target, region, delete=True):
@@ -95,7 +96,11 @@ def resize(image, target, size, max_size=None):
     # size can be min_size (scalar) or (w, h) tuple
 
     def get_size_with_aspect_ratio(image_size, size, max_size=None):
-        w, h = image_size
+        # print("image_size: ", image_size)
+        # pdb.set_trace()
+        (w, h) = image_size
+        # print("w:", w)
+        # print("h:", h)
 
         if (w <= h and w == size) or (h <= w and h == size):
             if max_size is not None:
@@ -289,20 +294,13 @@ class LargeScaleJitter(object):
 
         if "boxes" in target:
             boxes = target["boxes"]
-            # print("boxes: ", boxes)
-            # print("ratio_width: ", ratio_width)
-            # print("ratio_height: ", ratio_height)
-            # print("ratio_width: ", ratio_width)
-            # print("ratio_height: ", ratio_height)
 
             scaled_boxes = boxes * torch.as_tensor([ratio_width, ratio_height, ratio_width, ratio_height])
             target["boxes"] = scaled_boxes
 
         if "area" in target:
             area = target["area"]
-            # print("area: ", area)
             scaled_area = area * (ratio_width * ratio_height)
-            # print("scaled_area: ", scaled_area)
             target["area"] = scaled_area
 
         if "masks" in target:
@@ -341,8 +339,11 @@ class LargeScaleJitter(object):
             # favor boxes selection when defining which elements to keep
             # this is compatible with previous implementation
             if "boxes" in target:
-                cropped_boxes = target['boxes'].reshape(-1, 2, 2)
-                keep = torch.all(cropped_boxes[:, 1, :] > cropped_boxes[:, 0, :], dim=1)
+                # cropped_boxes = target['boxes'].reshape(-1, 2, 2)
+                # print("cropped_boxes: ", cropped_boxes)
+                # keep = torch.all(cropped_boxes[:, 1, :] > cropped_boxes[:, 0, :], dim=1)
+                # print("keep: ", keep)
+                keep = torch.tensor([True])
             else:
                 keep = target['masks'].flatten(1).any(1)
 

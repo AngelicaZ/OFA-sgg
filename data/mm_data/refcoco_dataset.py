@@ -62,6 +62,8 @@ def collate(samples, pad_idx, eos_idx):
             prev_output_tokens = merge("prev_output_tokens")
     else:
         ntokens = src_lengths.sum().item()
+    
+    print("target: ", target)
 
     batch = {
         "id": id,
@@ -146,6 +148,9 @@ class RefcocoDataset(OFADataset):
         src_caption = self.pre_caption(text, self.max_src_length)
         src_item = self.encode_text(self.prompt.format(src_caption))
         tgt_item = self.encode_text(region_coord, use_bpe=False)
+
+        print("region_coord: ", region_coord)
+        print("tgt_item: ", tgt_item)
 
         src_item = torch.cat([self.bos_item, src_item, self.eos_item])
         target_item = torch.cat([tgt_item, self.eos_item])

@@ -3,6 +3,7 @@
 # The port for communication. Note that if you want to run multiple tasks on the same machine,
 # you need to specify different port numbers.
 export MASTER_PORT=6051
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 
 log_dir=./refcoco_logs
 save_dir=./refcoco_checkpoints

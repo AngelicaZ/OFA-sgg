@@ -7,7 +7,7 @@ import logging
 import pdb
 import re
 import torch.utils.data
-from fairseq.data import FairseqDataset
+from fairseq.data import FairseqDataset, MaskTokensDataset
 from fairseq.tokenizer import tokenize_line
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,9 @@ class OFADataset(FairseqDataset):
         self.bos = src_dict.bos()
         self.eos = src_dict.eos()
         self.pad = src_dict.pad()
+        # self.mask_idx = src_dict.mask_idx()
+        # print("self.mask_idx: ", self.mask_idx)
+        # pdb.set_trace()
         self.bos_item = torch.LongTensor([self.bos])
         self.eos_item = torch.LongTensor([self.eos])
 
