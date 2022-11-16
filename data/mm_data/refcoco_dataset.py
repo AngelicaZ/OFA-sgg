@@ -127,6 +127,7 @@ class RefcocoDataset(OFADataset):
 
     def __getitem__(self, index):
         uniq_id, base64_str, text, region_coord = self.dataset[index]
+        print("text: ", text)
 
         image = Image.open(BytesIO(base64.urlsafe_b64decode(base64_str))).convert("RGB")
         w, h = image.size
@@ -149,8 +150,8 @@ class RefcocoDataset(OFADataset):
         src_item = self.encode_text(self.prompt.format(src_caption))
         tgt_item = self.encode_text(region_coord, use_bpe=False)
 
-        print("region_coord: ", region_coord)
-        print("tgt_item: ", tgt_item)
+        # print("region_coord: ", region_coord)
+        # print("tgt_item: ", tgt_item)
 
         src_item = torch.cat([self.bos_item, src_item, self.eos_item])
         target_item = torch.cat([tgt_item, self.eos_item])

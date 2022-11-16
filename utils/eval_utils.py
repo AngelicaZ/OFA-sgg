@@ -54,6 +54,7 @@ def eval_sgg(task, generator, models, sample, **kwargs):
         scenegraphs_json = load_json(scenegraphs_json_path)
         image_dir = task.cfg.img_dir
         for i, sample_id in enumerate(sample["id"].tolist()):
+            
             detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, task.bpe, generator)
             results[sample_id] = detok_hypo_str.replace('&&', ' ')
             img_name = sample_id + ".jpg"
@@ -88,16 +89,13 @@ def eval_sgg(task, generator, models, sample, **kwargs):
         for i, sample_id in enumerate(sample["id"].tolist()):
             index = sample["idx"].tolist()[i]
             bpe = None
+            target = sample["target"].tolist()[i]
+            # print("raw tokens: ", hypos[i][0]["tokens"])
+            # print("raw target: ", target)
             detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, bpe, generator)
             detok_hypo_str = task.bpe.decode(detok_hypo_str)
             detok_hypo_str = detok_hypo_str.replace('&&', ' ')
-            # print("detok_hypo_str after bpe decode: ", detok_hypo_str)
-            # for j in range(len(detok_hypo_str)):
-            #     if '<' in detok_hypo_str[j]:
-            #         continue
-            #     else:
-            #         detok_hypo_str[j] = task.bpe.decode(detok_hypo_str[j])
-            # detok_hypo_str = detok_hypo_str.split('&&')
+            
             result_id = str(sample_id) + '_' + str(index)
             results[result_id] = detok_hypo_str
 
@@ -424,7 +422,7 @@ def merge_results(task, cfg, logger, score_cnt, score_sum, results):
 
         if cfg.distributed_training.distributed_world_size == 1 or dist.get_rank() == 0:
             os.makedirs(cfg.common_eval.results_path, exist_ok=True)
-            output_path = os.path.join(cfg.common_eval.results_path, "{}_1111debug_predict.json".format(cfg.dataset.gen_subset))
+            output_path = os.path.join(cfg.common_eval.results_path, "{}_1115debug_predict.json".format(cfg.dataset.gen_subset))
             gather_results = list(chain(*gather_results)) if gather_results is not None else results
             with open(output_path, 'w') as fw:
                 json.dump(gather_results, fw)

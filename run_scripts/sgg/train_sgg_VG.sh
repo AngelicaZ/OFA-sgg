@@ -58,7 +58,7 @@ ema_fp32="--ema-fp32"
 ema_decay=0.9999
 ema_start_update=0
 
-tgt_seq_len=50
+tgt_seq_len=20
 
 
 #           --roidb-file=${roidb_file} \
@@ -74,8 +74,8 @@ for max_epoch in 10; do
       echo "arch "${arch}
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_1111_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_1111_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_1115_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_1115_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \

@@ -278,6 +278,8 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         # print("bbox_loss: ", bbox_loss)
         lprobs = lprobs[target != self.padding_idx]
         target = target[target != self.padding_idx] # [26]
+        # print("lprobs shape: ", lprobs.shape)
+        # print("target shape: ", target.shape)
         loss, nll_loss, ntokens = label_smoothed_nll_loss(
             lprobs,
             target,

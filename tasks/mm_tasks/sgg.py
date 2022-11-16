@@ -339,7 +339,8 @@ class SggTask(OFATask):
         # transtab = str.maketrans({key: None for key in string.punctuation}) # TODO: this line deal with the punctuation
         for i in range(len(gen_out)):
             decode_tokens = decode(gen_out[i][0]["tokens"])
-            # print("decode_tokens: ", decode_tokens)
+            decode_tokens_clean = decode_tokens.replace('&&', ' ')
+            # print("decode_tokens: ", decode_tokens_clean)
             # hyps.append(decode_tokens.translate(transtab).strip())
             hyps.append(decode_tokens)
             refs.append(
