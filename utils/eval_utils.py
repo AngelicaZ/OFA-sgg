@@ -103,13 +103,13 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             image_path = img_dir + img_name
             print("image path: ", image_path)
             print("pred_sentence:", results[result_id])
-            img, target_seq, imageid, src_text, _ = dataset[index]
-            for j in range(len(target_seq)):
-                if '<' in target_seq[j]:
-                    continue
-                else:
-                    target_seq[j] = task.bpe.decode(target_seq[j])
-                    target_seq[j] = target_seq[j].replace('&&', ' ')
+            img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = dataset[index]
+            # for j in range(len(target_seq)):
+            #     if '<' in target_seq[j]:
+            #         continue
+            #     else:
+            #         target_seq[j] = task.bpe.decode(target_seq[j])
+            #         target_seq[j] = target_seq[j].replace('&&', ' ')
             
             print("gt_sentence: ", target_seq)
             print("\n")
@@ -422,7 +422,7 @@ def merge_results(task, cfg, logger, score_cnt, score_sum, results):
 
         if cfg.distributed_training.distributed_world_size == 1 or dist.get_rank() == 0:
             os.makedirs(cfg.common_eval.results_path, exist_ok=True)
-            output_path = os.path.join(cfg.common_eval.results_path, "{}_1115debug_predict.json".format(cfg.dataset.gen_subset))
+            output_path = os.path.join(cfg.common_eval.results_path, "{}_1118debug_predict.json".format(cfg.dataset.gen_subset))
             gather_results = list(chain(*gather_results)) if gather_results is not None else results
             with open(output_path, 'w') as fw:
                 json.dump(gather_results, fw)

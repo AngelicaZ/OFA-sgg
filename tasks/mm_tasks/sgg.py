@@ -14,6 +14,7 @@ from itertools import zip_longest
 from collections import OrderedDict
 
 import numpy as np
+import torch.nn.functional as F
 import sacrebleu
 import torch
 from fairseq.tasks import register_task
@@ -73,6 +74,9 @@ class SggConfig(OFAConfig):
     )
     max_obj_num: int = field(
         default=100, metadata={"help": "max number of objects in an image"}
+    )
+    eval_acc: bool = field(
+        default=False, metadata={"help": "evaluation with accuracy"}
     )
     eval_bleu: bool = field(
         default=False, metadata={"help": "evaluation with BLEU scores"}
@@ -203,16 +207,10 @@ class SggTask(OFATask):
         '''
         model = super().build_model(cfg)
 
-        if self.cfg.eval_bleu:
-            gen_args = json.loads(self.cfg.eval_args)
-            self.sequence_generator = self.build_generator(
-                [model], Namespace(**gen_args)
-            )
-        if self.cfg.scst:
-            scst_args = json.loads(self.cfg.scst_args)
-            self.scst_generator = self.build_generator(
-                [model], Namespace(**scst_args)
-            )
+        gen_args = json.loads(self.cfg.eval_args)
+        self.sequence_generator = self.build_generator(
+            [model], Namespace(**gen_args)
+        )
 
         return model
     
@@ -249,6 +247,31 @@ class SggTask(OFATask):
         with torch.autograd.profiler.record_function("backward"):
             optimizer.backward(loss)
         return loss, sample_size, logging_output
+    
+    def _calculate_ap_score(self, hyps, refs, thresh=0.5):
+        '''
+        hyps shape: [16, 4]
+        refs shape: [16, 4]
+        '''
+        try:
+            assert hyps.shape[0] == refs.shape[0]
+        except:
+            print("hyps shape in _calculate_ap_score: ", hyps.shape)
+            print("refs shape in _calculate_ap_score: ", refs.shape)
+            print("hyps in _calculate_ap_score: ", hyps)
+            print("refs in _calculate_ap_score: ", refs)
+        interacts = torch.cat( # the intersect area
+            [torch.where(hyps[:, :2] < refs[:, :2], refs[:, :2], hyps[:, :2]),
+             torch.where(hyps[:, 2:] < refs[:, 2:], hyps[:, 2:], refs[:, 2:])],
+            dim=1
+        )
+        area_predictions = (hyps[:, 2] - hyps[:, 0]) * (hyps[:, 3] - hyps[:, 1])
+        area_targets = (refs[:, 2] - refs[:, 0]) * (refs[:, 3] - refs[:, 1])
+        interacts_w = interacts[:, 2] - interacts[:, 0]
+        interacts_h = interacts[:, 3] - interacts[:, 1]
+        area_interacts = interacts_w * interacts_h
+        ious = area_interacts / (area_predictions + area_targets - area_interacts + 1e-6)
+        return ((ious >= thresh) & (interacts_w > 0) & (interacts_h > 0)).float()
 
     def valid_step(self, sample, model, criterion):
         loss, sample_size, logging_output = criterion(self.sequence_generator, model, sample)
@@ -266,6 +289,23 @@ class SggTask(OFATask):
                 logging_output["_bleu_counts_" + str(i)] = bleu.counts[i]
                 logging_output["_bleu_totals_" + str(i)] = bleu.totals[i]
 
+        if self.cfg.eval_acc:
+            hyps, refs = self._inference(self.sequence_generator, sample, model)
+            hyps = hyps / (self.cfg.num_bins - 1) * self.cfg.max_image_size
+            refs = refs / (self.cfg.num_bins - 1) * self.cfg.max_image_size
+            hyps[:, ::2] /= sample['w_resize_ratios'].unsqueeze(1)
+            hyps[:, 1::2] /= sample['h_resize_ratios'].unsqueeze(1)
+            refs[:, ::2] /= sample['w_resize_ratios'].unsqueeze(1)
+            refs[:, 1::2] /= sample['h_resize_ratios'].unsqueeze(1)
+
+            hyps = hyps.reshape(-1, 4)
+            refs = refs.reshape(-1, 4)
+
+            scores = self._calculate_ap_score(hyps, refs)
+            # scores = self._calculate_ap_score(hyps, sample['region_coords'].float())
+            logging_output["_score_sum"] = scores.sum().item()
+            logging_output["_score_cnt"] = scores.size(0)
+
         return loss, sample_size, logging_output
 
     def reduce_metrics(self, logging_outputs, criterion):
@@ -278,6 +318,11 @@ class SggTask(OFATask):
             if torch.is_tensor(result):
                 result = result.cpu()
             return result
+        
+        def compute_score(meters):
+            score = meters["_score_sum"].sum / meters["_score_cnt"].sum
+            score = score if isinstance(score, float) else score.item()
+            return round(score, 4)
 
         if self.cfg.eval_bleu:
             counts, totals = [], []
@@ -311,6 +356,12 @@ class SggTask(OFATask):
                     return round(bleu.score, 2) # TODO: modify to trunc or floor
 
                 metrics.log_derived("bleu", compute_bleu) # Log a scalar value derived from other meters.
+        
+        if self.cfg.eval_acc:
+            if sum_logs("_score_cnt") > 0:
+                metrics.log_scalar("_score_sum", sum_logs("_score_sum"))
+                metrics.log_scalar("_score_cnt", sum_logs("_score_cnt"))
+                metrics.log_derived("score", compute_score)
 
     def _inference(self, generator, sample, model):
 
@@ -336,25 +387,70 @@ class SggTask(OFATask):
         tgt_dict: 
         '''
         hyps, refs = [], []
+        # print("length of reference: ", len(gen_out))
         # transtab = str.maketrans({key: None for key in string.punctuation}) # TODO: this line deal with the punctuation
-        for i in range(len(gen_out)):
-            decode_tokens = decode(gen_out[i][0]["tokens"])
-            decode_tokens_clean = decode_tokens.replace('&&', ' ')
-            # print("decode_tokens: ", decode_tokens_clean)
-            # hyps.append(decode_tokens.translate(transtab).strip())
-            hyps.append(decode_tokens)
-            refs.append(
-                [
-                    # sent.translate(transtab).strip()
-                    sent.strip()
-                    for sent in decode(
-                        utils.strip_pad(sample["target"][i], self.tgt_dict.pad()),
-                        escape_unk=True,  # don't count <unk> as matches to the hypo
-                    ).split(' ')
-                ]
-            )
+
+        if self.cfg.eval_acc:
+            max_len = 0
+            for i in range(len(gen_out)):
+                ref = sample["target"][i][:-1] - len(self.src_dict) + self.cfg.num_bins
+                hyp = gen_out[i][0]["tokens"][:-1] - len(self.src_dict) + self.cfg.num_bins
+                ref_list = ref.tolist()
+                hyp_list = hyp.tolist()
+                # print("ref: ", ref)
+                # print("hyp: ", hyp)
+                hyp_i = []
+                ref_i = []
+                for j in range(len(ref_list)):
+                    if ref[j] == -58454:
+                        try: 
+                            hyp_i.extend([hyp_list[j-4], hyp_list[j-3], hyp_list[j-2], hyp_list[j-1]])
+                            ref_i.extend([ref_list[j-4], ref_list[j-3], ref_list[j-2], ref_list[j-1]])
+                        except:
+                            print("hyp_i: ", hyp_list)
+                            print("ref_i: ", ref_list)
+                if len(ref_i) > max_len:
+                    max_len = len(ref_i)
+                hyps.append(hyp_i) # torch.tensor(hyp_i).to(ref.device)
+                refs.append(ref_i)
+            for i in range(len(refs)):
+                if len(hyps[i]) < max_len:
+                    for j in range(max_len - len(hyps[i])):
+                        hyps[i].append(0)
+                if len(refs[i]) < max_len:
+                    for j in range(max_len - len(refs[i])):
+                        refs[i].append(0)
+                hyps[i] = torch.tensor(hyps[i]).to(ref.device)
+                refs[i] = torch.tensor(refs[i]).to(ref.device)
+                
+        if self.cfg.eval_bleu:
+            for i in range(len(gen_out)):
+                decode_tokens = decode(gen_out[i][0]["tokens"])
+                decode_tokens_clean = decode_tokens.replace('&&', ' ')
+                print("decode_tokens: ", decode_tokens_clean)
+                # hyps.append(decode_tokens.translate(transtab).strip())
+                hyps.append(decode_tokens)
+                refs.append(
+                    [
+                        # sent.translate(transtab).strip()
+                        sent.strip()
+                        for sent in decode(
+                            utils.strip_pad(sample["target"][i], self.tgt_dict.pad()),
+                            escape_unk=True,  # don't count <unk> as matches to the hypo
+                        ).split(' ')
+                    ]
+                )
+            
         if self.cfg.eval_print_samples:
             logger.info("example hypothesis: " + hyps[0])
             logger.info("example reference: " + ' '.join(refs[0]))
 
-        return hyps, refs
+        # return hyps, refs
+        try:
+            assert len(hyps) == len(refs)
+        except:
+            print("hyps shape in _inference: ", hyps.shape)
+            print("refs shape in _inference: ", refs.shape)
+            print("hyps in _inference: ", hyps)
+            print("refs in _inference: ", refs)
+        return torch.stack(hyps, dim=0), torch.stack(refs, dim=0)

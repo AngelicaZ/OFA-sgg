@@ -50,6 +50,12 @@ def collate(samples, pad_idx, eos_idx):
     patch_images = torch.stack([sample['patch_image'] for sample in samples], dim=0)
     patch_masks = torch.cat([sample['patch_mask'] for sample in samples])
 
+    w_resize_ratios = torch.stack([s["w_resize_ratio"] for s in samples], dim=0)
+    h_resize_ratios = torch.stack([s["h_resize_ratio"] for s in samples], dim=0)
+    # region_coords = torch.cat([s['region_coord'] for s in samples], dim=0)
+    if samples[0].get("region_coord", None) is not None:
+        region_coords = merge("region_coord")
+
     prev_output_tokens = None
     target = None
     if samples[0].get("target", None) is not None:
@@ -80,6 +86,9 @@ def collate(samples, pad_idx, eos_idx):
             "prev_output_tokens": prev_output_tokens
         },
         "target": target,
+        "w_resize_ratios": w_resize_ratios,
+        "h_resize_ratios": h_resize_ratios,
+        "region_coords": region_coords
     }
     # print("target in collate func shape: ", target.shape)
 
@@ -125,7 +134,7 @@ class SggVGDataset(OFADataset):
         self.prompt = " what does the image describe about {}?"
 
     def __getitem__(self, idx):
-        img, tgt_seq, imageid, src_text, index = self.dataset[idx]
+        img, tgt_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = self.dataset[idx]
         
         # patch_image = self.patch_resize_transform(img)
         patch_image = img
@@ -153,7 +162,10 @@ class SggVGDataset(OFADataset):
             "patch_image": patch_image,
             "patch_mask": patch_mask,
             "target": target_item,
-            "prev_output_tokens": prev_output_item
+            "prev_output_tokens": prev_output_item,
+            "w_resize_ratio": w_resize_ratio,
+            "h_resize_ratio": h_resize_ratio,
+            "region_coord": region
         }
         return example
 
@@ -193,8 +205,8 @@ class VGDatasetReader(Dataset):
                  transforms=None,
                  filter_empty_rels=True, 
                  required_len=None,
-                 num_im=10000, 
-                 num_val_im=4,
+                 num_im=1000, 
+                 num_val_im=150,
                  code_image_size=128,
                  max_image_size=512,
                  patch_image_size=512,
@@ -203,6 +215,7 @@ class VGDatasetReader(Dataset):
                  filter_non_overlap=True, 
                  flip_aug=False,   # flip augmentation
                  custom_eval=False, 
+                 num_bins=1000,
                  custom_path=''):
         """
         Torch dataset for VisualGenome
@@ -239,6 +252,7 @@ class VGDatasetReader(Dataset):
         self.transforms = transforms
         self.required_len = required_len
         self.code_image_size = code_image_size
+        self.num_bins = num_bins
 
         self.ind_to_classes, self.ind_to_predicates, self.ind_to_attributes = load_info(dict_file) # contiguous 151, 51 containing __background__
         self.class_to_ind, self.predicate_to_ind, self.attribute_to_ind = find_index(dict_file)
@@ -299,93 +313,14 @@ class VGDatasetReader(Dataset):
 
         # print("required_len: ", self.required_len)
         # pdb.set_trace()
-        target_seq, img, obj_labels = self.target2seq(img, target, self.required_len)
+        target_seq, img, obj_labels, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len)
         # target_seq_raw = self.target2seq_raw(img, target, self.required_len)
         # target_mask = torch.zeros(len(target_seq_raw))
         # print("target in raw dataset: ", target_seq)
 
-        src_text = ' '.join(obj_labels)
+        src_text = ' '.join(obj_labels + target_seq[:4])
 
-        return img, target_seq, imageid, src_text, index
-    
-    def target2seq_raw(self, image, target, required_len=None):
-
-        seq = []
-        obj_num = target.bbox.shape[0]
-        (w, h) = target.size
-        for i in range(obj_num): # each object
-            bbox = target.bbox[i, :].unsqueeze(0)
-            boxes_target = {"boxes": [], "labels": [], "area": [], "size": torch.tensor([h, w])}
-            boxes_target["boxes"] = bbox
-            boxes_target["labels"] = np.array([0])
-            boxes_target["area"].append((float(bbox[:,2]) - float(bbox[:,0])) * (float(bbox[:,3]) - float(bbox[:,1])))
-            boxes_target["area"] = torch.tensor(boxes_target["area"])
-            patch_image, bbox_new = self.positioning_transform(image, boxes_target)
-            bbox_value = bbox_new['boxes']
-            # print("bbox after transform: ", [t.detach().numpy() for t in bbox_new['boxes']])
-            # pdb.set_trace()
-
-
-
-
-            # # for debugging
-            # bbox = torch.tensor([200/w, 200/h, 300/w, 300/h])
-            # patch_image, _ = self.detection_transform(image, boxes_target)
-
-            # print("bbox_value: ", bbox_value)
-            # pdb.set_trace()
-
-
-            # print("bbox: ", bbox)
-            obj_id = target.extra_fields['labels'][i]
-            attrs_id = target.extra_fields['attributes'][i, :]
-            relations_id = target.extra_fields['relation'][i, :]
-            rel_num = np.count_nonzero(relations_id)
-            if rel_num == 0:
-                continue
-            else:
-                obj_name = self.ind_to_classes[obj_id]
-                seq.append(self.bpe.encode(obj_name + '&&'))
-                # seq.append(self.bpe.encode(obj_name))
-                seq.append("<bin_{}>".format(str(round(bbox_value[0][0].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[0][1].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[0][2].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[0][3].item() * 999))))
-                seq.append(self.bpe.encode('&&is&&'))
-                # seq.append(self.bpe.encode('is'))
-                rel_cnt = 0
-                for j in range(obj_num):
-                    if relations_id[j] != 0:
-                        rel_cnt += 1
-                        obj2_id = target.extra_fields['labels'][j]
-                        obj2_name = self.ind_to_classes[obj2_id]
-                        rel_id = relations_id[j]
-                        rel_name = self.ind_to_predicates[rel_id]
-                        rel_name_words = rel_name.split(' ')
-                        for k in range(len(rel_name_words)):
-                            seq.append(self.bpe.encode(rel_name_words[k] + '&&'))
-                            # seq.append(self.bpe.encode(rel_name_words[k]))
-                        seq.append(self.bpe.encode(obj2_name + '&&'))
-                        # seq.append(self.bpe.encode(obj2_name))
-                        bbox2 = target.bbox[j, :]
-                        seq.append("<bin_{}>".format(str(round(bbox2[0][0].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[0][1].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[0][2].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox2[0][3].item() * 999))))
-                        if rel_cnt < rel_num:
-                            seq.append(self.bpe.encode('&&,&&'))
-                            # seq.append(self.bpe.encode(','))
-                        else:
-                            seq.append(self.bpe.encode('&&.&&'))
-                            # seq.append(self.bpe.encode('.'))
-        
-        seq_len = len(seq)
-        if required_len:
-            if seq_len > required_len:
-                seq = seq[:required_len]
-        
-        return seq
-
+        return img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region
 
     def target2seq(self, image, target, required_len=None):
         '''
@@ -412,8 +347,25 @@ class VGDatasetReader(Dataset):
         boxes_target["area"] = torch.tensor(boxes_target["area"])
         patch_image, bbox_new = self.positioning_transform(image, boxes_target)
         bbox_value = bbox_new['boxes']
+        resize_h, resize_w = bbox_new["size"][0], bbox_new["size"][1]
+        w_resize_ratio = resize_w / w
+        h_resize_ratio = resize_h / h
+
+        region_raw = []
+        for i in range(bbox.shape[0]):
+            region_raw.extend(bbox[i, :])
+        region = torch.tensor(region_raw)
+        
         # print("bbox value: ", bbox_value)
         # pdb.set_trace()
+
+        bbox_seq = []
+        for i in range(bbox_value.shape[0]):
+            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
+            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
+            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
+            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
+            bbox_seq.append('&&')
 
         for i in range(obj_num): # each object
             
@@ -481,7 +433,12 @@ class VGDatasetReader(Dataset):
             if seq_len > required_len:
                 seq = seq[:required_len]
         
-        return seq, patch_image, obj_labels
+        bbox_seq_len = len(bbox_seq)
+        if required_len:
+            if bbox_seq_len > required_len:
+                bbox_seq = bbox_seq[:required_len]
+        
+        return bbox_seq, patch_image, obj_labels, w_resize_ratio, h_resize_ratio, region
 
 
     def get_statistics(self):

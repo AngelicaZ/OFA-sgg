@@ -74,8 +74,8 @@ for max_epoch in 10; do
       echo "arch "${arch}
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_1115_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_1115_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_1121_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_1121_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
@@ -126,9 +126,9 @@ for max_epoch in 10; do
           --keep-last-epochs=15 \
           --save-interval=1 --validate-interval=5 \
           --save-interval-updates=500 --validate-interval-updates=500 \
-          --eval-bleu \
-          --eval-args='{"beam":5,"max_len":1000,"no_repeat_ngram_size":3}' \
-          --best-checkpoint-metric=bleu --maximize-best-checkpoint-metric \
+          --eval-acc \
+          --eval-args='{"beam":5,"max_len":1000}' \
+          --best-checkpoint-metric=score --maximize-best-checkpoint-metric \
           --max-src-length=${max_src_length} \
           --max-tgt-length=${max_tgt_length} \
           --find-unused-parameters \
