@@ -241,14 +241,14 @@ class SggTask(OFATask):
         model.set_num_updates(update_num)
         with torch.autograd.profiler.record_function("forward"):
             with torch.cuda.amp.autocast(enabled=(isinstance(optimizer, AMPOptimizer))):
-                loss, sample_size, logging_output = criterion(self.sequence_generator, model, sample, update_num=update_num)
+                loss, sample_size, logging_output = criterion(model, sample, update_num=update_num) # self.sequence_generator, 
         if ignore_grad:
             loss *= 0
         with torch.autograd.profiler.record_function("backward"):
             optimizer.backward(loss)
         return loss, sample_size, logging_output
     
-    def _calculate_ap_score(self, hyps, refs, thresh=0.5):
+    def _calculate_ap_score(self, hyps, refs, thresh=0.3):
         '''
         hyps shape: [16, 4]
         refs shape: [16, 4]
@@ -274,7 +274,7 @@ class SggTask(OFATask):
         return ((ious >= thresh) & (interacts_w > 0) & (interacts_h > 0)).float()
 
     def valid_step(self, sample, model, criterion):
-        loss, sample_size, logging_output = criterion(self.sequence_generator, model, sample)
+        loss, sample_size, logging_output = criterion(model, sample) # self.sequence_generator, 
 
         model.eval()
         if self.cfg.eval_bleu:

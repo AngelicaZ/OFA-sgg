@@ -94,7 +94,7 @@ class RefcocoTask(OFATask):
 
         return model
 
-    def _calculate_ap_score(self, hyps, refs, thresh=0.5):
+    def _calculate_ap_score(self, hyps, refs, thresh=0.3):
         interacts = torch.cat(
             [torch.where(hyps[:, :2] < refs[:, :2], refs[:, :2], hyps[:, :2]),
              torch.where(hyps[:, 2:] < refs[:, 2:], hyps[:, 2:], refs[:, 2:])],

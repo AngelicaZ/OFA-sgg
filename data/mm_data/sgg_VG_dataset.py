@@ -131,7 +131,7 @@ class SggVGDataset(OFADataset):
             transforms.Normalize(mean=mean, std=std),
         ])
     
-        self.prompt = " what does the image describe about {}?"
+        self.prompt = " which region does the image describe about {}?"
 
     def __getitem__(self, idx):
         img, tgt_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = self.dataset[idx]
@@ -318,7 +318,7 @@ class VGDatasetReader(Dataset):
         # target_mask = torch.zeros(len(target_seq_raw))
         # print("target in raw dataset: ", target_seq)
 
-        src_text = ' '.join(obj_labels + target_seq[:4])
+        src_text = ' '.join(obj_labels)
 
         return img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region
 
@@ -359,13 +359,13 @@ class VGDatasetReader(Dataset):
         # print("bbox value: ", bbox_value)
         # pdb.set_trace()
 
-        bbox_seq = []
-        for i in range(bbox_value.shape[0]):
-            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
-            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
-            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
-            bbox_seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
-            bbox_seq.append('&&')
+        # bbox_seq = []
+        # for i in range(bbox_value.shape[0]):
+        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][0].item() * 999)))))) # (bbox_value[i][0].item() # (i/20 + 0.2)
+        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][1].item() * 999))))))
+        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][2].item() * 999))))))
+        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][3].item() * 999))))))
+        #     bbox_seq.append('&&')
 
         for i in range(obj_num): # each object
             
@@ -393,10 +393,10 @@ class VGDatasetReader(Dataset):
                 obj_names.append(obj_name)
                 seq.append(self.bpe.encode(obj_name + '&&'))
                 # seq.append(self.bpe.encode(obj_name))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
+                # seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
+                # seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
+                # seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
+                # seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
                 seq.append(self.bpe.encode('&&is&&'))
                 # seq.append(self.bpe.encode('is'))
                 rel_cnt = 0
@@ -415,10 +415,10 @@ class VGDatasetReader(Dataset):
                         obj_names.append(obj2_name)
                         # seq.append(self.bpe.encode(obj2_name))
                         bbox2 = target.bbox[j, :]
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * 999))))
+                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * 999))))
+                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * 999))))
+                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * 999))))
+                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * 999))))
                         if rel_cnt < rel_num:
                             seq.append(self.bpe.encode('&&,&&'))
                             # seq.append(self.bpe.encode(','))
@@ -438,7 +438,7 @@ class VGDatasetReader(Dataset):
             if bbox_seq_len > required_len:
                 bbox_seq = bbox_seq[:required_len]
         
-        return bbox_seq, patch_image, obj_labels, w_resize_ratio, h_resize_ratio, region
+        return seq, patch_image, obj_labels, w_resize_ratio, h_resize_ratio, region
 
 
     def get_statistics(self):

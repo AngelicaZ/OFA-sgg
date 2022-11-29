@@ -58,7 +58,7 @@ ema_fp32="--ema-fp32"
 ema_decay=0.9999
 ema_start_update=0
 
-tgt_seq_len=20
+tgt_seq_len=350
 
 
 #           --roidb-file=${roidb_file} \
@@ -74,8 +74,8 @@ for max_epoch in 10; do
       echo "arch "${arch}
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_1121_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_1121_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_1129_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_1129_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
@@ -127,7 +127,7 @@ for max_epoch in 10; do
           --save-interval=1 --validate-interval=5 \
           --save-interval-updates=500 --validate-interval-updates=500 \
           --eval-acc \
-          --eval-args='{"beam":5,"max_len":1000}' \
+          --eval-args='{"beam":5,"max_len":1000,"max_len_b":400}' \
           --best-checkpoint-metric=score --maximize-best-checkpoint-metric \
           --max-src-length=${max_src_length} \
           --max-tgt-length=${max_tgt_length} \

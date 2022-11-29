@@ -170,7 +170,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             self.constraint_start = int(constraint_start)
             self.constraint_end = int(constraint_end)
 
-    def forward(self, generator, model, sample, update_num=0, reduce=True):
+    def forward(self, model, sample, update_num=0, reduce=True):
         """Compute the loss for the given sample.
 
         Returns a tuple with three elements:
@@ -222,7 +222,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         '''
         # print("target shape just before input to model: ", sample["target"].shape)
         
-        loss, nll_loss, ntokens = self.compute_loss(generator, model, net_output, sample, update_num, reduce=reduce)
+        loss, nll_loss, ntokens = self.compute_loss(model, net_output, sample, update_num, reduce=reduce)
         sample_size = (
             sample["target"].size(0) if self.sentence_avg else ntokens
         )
@@ -267,7 +267,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             constraint_masks = constraint_masks.view(-1, constraint_masks.size(-1))
         return lprobs.view(-1, lprobs.size(-1)), lprobs, target.view(-1), target, constraint_masks
 
-    def compute_loss(self, generator, model, net_output, sample, update_num, reduce=True):
+    def compute_loss(self, model, net_output, sample, update_num, reduce=True):
         # sample['target']: [4, 14]
         lprobs, lprobs_raw, target, target_raw, constraint_masks = self.get_lprobs_and_target(model, net_output, sample)
         # target [56]
