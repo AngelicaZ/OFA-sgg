@@ -427,7 +427,7 @@ class SggTask(OFATask):
             for i in range(len(gen_out)):
                 decode_tokens = decode(gen_out[i][0]["tokens"])
                 decode_tokens_clean = decode_tokens.replace('&&', ' ')
-                print("decode_tokens: ", decode_tokens_clean)
+                # print("decode_tokens: ", decode_tokens_clean)
                 # hyps.append(decode_tokens.translate(transtab).strip())
                 hyps.append(decode_tokens)
                 refs.append(
@@ -445,12 +445,16 @@ class SggTask(OFATask):
             logger.info("example hypothesis: " + hyps[0])
             logger.info("example reference: " + ' '.join(refs[0]))
 
-        # return hyps, refs
-        try:
-            assert len(hyps) == len(refs)
-        except:
-            print("hyps shape in _inference: ", hyps.shape)
-            print("refs shape in _inference: ", refs.shape)
-            print("hyps in _inference: ", hyps)
-            print("refs in _inference: ", refs)
-        return torch.stack(hyps, dim=0), torch.stack(refs, dim=0)
+
+        if self.cfg.eval_acc:
+            try:
+                assert len(hyps) == len(refs)
+            except:
+                print("hyps shape in _inference: ", hyps.shape)
+                print("refs shape in _inference: ", refs.shape)
+                print("hyps in _inference: ", hyps)
+                print("refs in _inference: ", refs)
+            return torch.stack(hyps, dim=0), torch.stack(refs, dim=0)
+
+        if self.cfg.eval_bleu:
+            return hyps, refs

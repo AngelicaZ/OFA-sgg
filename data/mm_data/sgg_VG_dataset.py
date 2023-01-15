@@ -1,3 +1,4 @@
+from audioop import reverse
 import pdb
 import numpy as np
 import h5py
@@ -131,7 +132,7 @@ class SggVGDataset(OFADataset):
             transforms.Normalize(mean=mean, std=std),
         ])
     
-        self.prompt = " which region does the image describe about {}?"
+        self.prompt = " what does the image describe about {}?"
 
     def __getitem__(self, idx):
         img, tgt_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = self.dataset[idx]
@@ -205,8 +206,8 @@ class VGDatasetReader(Dataset):
                  transforms=None,
                  filter_empty_rels=True, 
                  required_len=None,
-                 num_im=1000, 
-                 num_val_im=150,
+                 num_im=-1, 
+                 num_val_im=5000,
                  code_image_size=128,
                  max_image_size=512,
                  patch_image_size=512,
@@ -313,16 +314,106 @@ class VGDatasetReader(Dataset):
 
         # print("required_len: ", self.required_len)
         # pdb.set_trace()
-        target_seq, img, obj_labels, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len)
+        target_seq, img, obj_labels, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len, obj_order=True)
         # target_seq_raw = self.target2seq_raw(img, target, self.required_len)
         # target_mask = torch.zeros(len(target_seq_raw))
         # print("target in raw dataset: ", target_seq)
 
-        src_text = ' '.join(obj_labels)
+        # src_text = ' '.join(obj_labels)
+        src_text = ''
 
         return img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region
 
-    def target2seq(self, image, target, required_len=None):
+    def target2seq_raw(self, image, target, required_len=None, obj_order=False):
+        seq = []
+        obj_names = []
+        rel_names = []
+        obj_num = target.bbox.shape[0]
+        (w, h) = target.size
+
+        bbox = target.bbox
+        boxes_target = {"boxes": [], "labels": [], "area": [], "size": torch.tensor([h, w])}
+        boxes_target["boxes"] = bbox
+        boxes_target["labels"] = np.array([0])
+        for i in range(obj_num):
+            boxes_target["area"].append((float(bbox[i,2]) - float(bbox[i,0])) * (float(bbox[i,3]) - float(bbox[i,1])))
+    
+        boxes_target["area"] = torch.tensor(boxes_target["area"])
+        patch_image, bbox_new = self.positioning_transform(image, boxes_target)
+        bbox_value = bbox_new['boxes']
+        resize_h, resize_w = bbox_new["size"][0], bbox_new["size"][1]
+        w_resize_ratio = resize_w / w
+        h_resize_ratio = resize_h / h
+
+        region_raw = []
+        for i in range(obj_num):
+            region_raw.extend(bbox[i, :])
+        region = torch.tensor(region_raw)
+
+
+        # rearrange the objects from big to small
+        if obj_order:
+            new_area_list = bbox_new["area"].tolist()
+            new_area_list.sort(reverse=True)
+            objid_sort = []
+            for i in range(obj_num):
+                new_objid = new_area_list.index(bbox_new["area"].tolist()[i])
+                objid_sort.append(new_objid)
+
+
+        for m in range(obj_num): # each object
+            if obj_order:
+                i = objid_sort[m]
+            else:
+                i = m
+            obj_id = target.extra_fields['labels'][i]
+            attrs_id = target.extra_fields['attributes'][i, :]
+            relations_id = target.extra_fields['relation'][i, :]
+            rel_num = np.count_nonzero(relations_id)
+            if rel_num == 0:
+                continue
+            else:
+                obj_name = self.ind_to_classes[obj_id]
+                obj_names.append(obj_name)
+                seq.append(obj_name)
+                seq.append('is')
+
+                rel_cnt = 0
+                for j in range(obj_num):
+                    if relations_id[j] != 0:
+                        rel_cnt += 1
+                        obj2_id = target.extra_fields['labels'][j]
+                        obj2_name = self.ind_to_classes[obj2_id]
+                        rel_id = relations_id[j]
+                        rel_name = self.ind_to_predicates[rel_id]
+                        rel_names.append(rel_name)
+                        rel_name_words = rel_name.split(' ')
+                        for k in range(len(rel_name_words)):
+                            seq.append(rel_name_words[k])
+                            
+                        seq.append(obj2_name)
+                        obj_names.append(obj2_name)
+                        
+                        bbox2 = target.bbox[j, :]
+                        
+                        if rel_cnt < rel_num:
+                            seq.append(',')  
+                        else:
+                            seq.append('.')
+                            
+        
+        obj_labels = sorted(set(obj_names), key=lambda x:obj_names.index(x))
+        rel_labels = sorted(set(rel_names), key=lambda x:rel_names.index(x))
+
+        seq_len = len(seq)
+        if required_len:
+            if seq_len > required_len:
+                seq = seq[:required_len]
+        
+        return seq, obj_labels, rel_labels
+
+
+    def target2seq(self, image, target, required_len=None, obj_order=False):
         '''
         target fields: ['labels', 'attributes', 'relation']
         bboxes: [14, 4] (xyxy), without normalization
@@ -343,6 +434,9 @@ class VGDatasetReader(Dataset):
         boxes_target = {"boxes": [], "labels": [], "area": [], "size": torch.tensor([h, w])}
         boxes_target["boxes"] = bbox
         boxes_target["labels"] = np.array([0])
+        for i in range(obj_num):
+            boxes_target["area"].append((float(bbox[i,2]) - float(bbox[i,0])) * (float(bbox[i,3]) - float(bbox[i,1])))
+        # print("area original: ", boxes_target["area"])
         # boxes_target["area"].append((float(bbox[:,2]) - float(bbox[:,0])) * (float(bbox[:,3]) - float(bbox[:,1])))
         boxes_target["area"] = torch.tensor(boxes_target["area"])
         patch_image, bbox_new = self.positioning_transform(image, boxes_target)
@@ -352,7 +446,7 @@ class VGDatasetReader(Dataset):
         h_resize_ratio = resize_h / h
 
         region_raw = []
-        for i in range(bbox.shape[0]):
+        for i in range(obj_num):
             region_raw.extend(bbox[i, :])
         region = torch.tensor(region_raw)
         
@@ -367,7 +461,17 @@ class VGDatasetReader(Dataset):
         #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][3].item() * 999))))))
         #     bbox_seq.append('&&')
 
-        for i in range(obj_num): # each object
+        # rearrange the objects from big to small
+        if obj_order:
+            new_area_list = bbox_new["area"].tolist()
+            new_area_list.sort(reverse=True)
+            objid_sort = []
+            for i in range(obj_num):
+                new_objid = new_area_list.index(bbox_new["area"].tolist()[i])
+                objid_sort.append(new_objid)
+
+
+        for m in range(obj_num): # each object
             
             # print("bbox after transform: ", [t.detach().numpy() for t in bbox_new['boxes']])
             # pdb.set_trace()
@@ -382,6 +486,10 @@ class VGDatasetReader(Dataset):
 
 
             # print("bbox: ", bbox)
+            if obj_order:
+                i = objid_sort[m]
+            else:
+                i = m
             obj_id = target.extra_fields['labels'][i]
             attrs_id = target.extra_fields['attributes'][i, :]
             relations_id = target.extra_fields['relation'][i, :]
@@ -393,10 +501,10 @@ class VGDatasetReader(Dataset):
                 obj_names.append(obj_name)
                 seq.append(self.bpe.encode(obj_name + '&&'))
                 # seq.append(self.bpe.encode(obj_name))
-                # seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
-                # seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
-                # seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
-                # seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
                 seq.append(self.bpe.encode('&&is&&'))
                 # seq.append(self.bpe.encode('is'))
                 rel_cnt = 0
@@ -415,10 +523,10 @@ class VGDatasetReader(Dataset):
                         obj_names.append(obj2_name)
                         # seq.append(self.bpe.encode(obj2_name))
                         bbox2 = target.bbox[j, :]
-                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * 999))))
-                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * 999))))
-                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * 999))))
-                        # seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * 999))))
                         if rel_cnt < rel_num:
                             seq.append(self.bpe.encode('&&,&&'))
                             # seq.append(self.bpe.encode(','))
@@ -433,10 +541,10 @@ class VGDatasetReader(Dataset):
             if seq_len > required_len:
                 seq = seq[:required_len]
         
-        bbox_seq_len = len(bbox_seq)
-        if required_len:
-            if bbox_seq_len > required_len:
-                bbox_seq = bbox_seq[:required_len]
+        # bbox_seq_len = len(bbox_seq)
+        # if required_len:
+        #     if bbox_seq_len > required_len:
+        #         bbox_seq = bbox_seq[:required_len]
         
         return seq, patch_image, obj_labels, w_resize_ratio, h_resize_ratio, region
 
@@ -708,7 +816,7 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
 
     # to reduce the number of test image for debugging
     # if split == 'test':
-    #     for i in range(78000, len(data_split)):
+    #     for i in range(85000, len(data_split)):
     #         data_split[i] = 0
     
 

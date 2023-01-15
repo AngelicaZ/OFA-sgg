@@ -1,7 +1,7 @@
 
-export MASTER_PORT=4081
+export MASTER_PORT=8096
 # 8087, 4081, 3053, 3054, 3055
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 export GPUS_PER_NODE=4
 export TORCH_DISTRIBUTED_DETAIL=DEBUG
 export NCCL_P2P_LEVEL=NVL
@@ -17,7 +17,7 @@ data=${base_dir}/VG-SGG-with-attri.h5
 # image_file=${base_dir}/image_data.json
 
 checkpoint=checkpoint_best
-paras=VG_1127_2_debug_10_1e-4_ofa_tiny_350
+paras=VG_1222_pretrain_bbox_noorder_15_1e-4_ofa_tiny_100
 path=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 result_path=../../results/sgg/VG
 # selected_cols=1,4,2
@@ -26,7 +26,7 @@ split='test'
 log_dir=./sgg_logs_eval/VG
 mkdir -p $log_dir
 
-log_file=${log_dir}/${paras}"_"${checkpoint}".log"
+log_file=${log_dir}/${paras}"_"${checkpoint}"_0115.log"
 
 python3 -m torch.distributed.launch  --nproc_per_node=${GPUS_PER_NODE} --master_port=${MASTER_PORT} ../../evaluate.py \
     ${data} \

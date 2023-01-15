@@ -51,6 +51,6 @@ if __name__ == "__main__":
     #     evaluate_on_VG_seq(sys.argv[1], sys.argv[2])
     # else:
     #     raise NotImplementedError
-    predictions = load_json('results/sgg/VG/test_1019normbbox_predict.json')
+    predictions = load_json('results/sgg/VG/test_1222_pretrain_noorder_complete_predict.json')
     output_folder = 'results/sgg/VG/recall_evals/'
     evaluate_on_VG_seq(predictions, output_folder)

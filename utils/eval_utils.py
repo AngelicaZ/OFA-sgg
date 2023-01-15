@@ -95,21 +95,95 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, bpe, generator)
             detok_hypo_str = task.bpe.decode(detok_hypo_str)
             detok_hypo_str = detok_hypo_str.replace('&&', ' ')
+            pred = detok_hypo_str.split()
+            for j, word in enumerate(pred):
+                if '<' in word:
+                    if '<' not in pred[j-1]:
+                        obj_name = pred[j-1]
+        #                 print(obj_name)
+                    else:
+                        continue
+                    bbox = []
+                    temp0 = word.split('><')
+            #         print(temp0)
+                    for m in temp0:
+                        temp1 = m.split('_')
+                        for n in temp1:
+                            if n.isnumeric():
+                                bbox.append(int(n))
+                            else:
+                                temp2 = n.split('>')
+                                for k in temp2:
+                                    if k.isnumeric():
+                                        bbox.append(int(k))
+
+                    # bbox: xyxy
+                    if len(bbox) < 4:
+                        print("Non-compliant bbox in prediction: ", bbox)
+                        continue
+                    bbox[2] = max(bbox[2] - bbox[0], 0)
+                    bbox[3] = max(bbox[3] - bbox[1], 0)
+
+                    if len(bbox) > 4:
+                        bbox = bbox[:4]
+                    
+                    bbox_denormalize = []
+                    for p, b in enumerate(bbox):
+                        # print("original bbox value: ", b)
+                        b = b / (task.cfg.num_bins - 1) * task.cfg.max_image_size
+                        # print("bbox value after denormalization: ", b)
+                        if p % 2 == 0:
+                            # print("w_resize_ratios: ", sample['w_resize_ratios'])
+                            b /= sample['w_resize_ratios'][i]
+                        else:
+                            # print("h_resize_ratios: ", sample['h_resize_ratios'])
+                            b /= sample['h_resize_ratios'][i]
+                        # print("bbox value after w/h resize: ", b)
+                        bbox_denormalize.append(int(b))
+                    
+                    pred[j] = bbox_denormalize
+                    # print("pred[j]: ", pred[j])
+                    
+            # print("pred: ", pred)
             
             result_id = str(sample_id) + '_' + str(index)
-            results[result_id] = detok_hypo_str
+            results[result_id] = pred
 
             img_name = sample_id + ".jpg"
             image_path = img_dir + img_name
             print("image path: ", image_path)
             print("pred_sentence:", results[result_id])
             img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = dataset[index]
-            # for j in range(len(target_seq)):
-            #     if '<' in target_seq[j]:
-            #         continue
-            #     else:
-            #         target_seq[j] = task.bpe.decode(target_seq[j])
-            #         target_seq[j] = target_seq[j].replace('&&', ' ')
+            for j in range(len(target_seq)):
+                if '<' in target_seq[j]:
+                    bbox = []
+                    temp0 = target_seq[j].split('><')
+                    for m in temp0:
+                        temp1 = m.split('_')
+                    for n in temp1:
+                        if n.isnumeric():
+                            bbox.append(int(n))
+                        else:
+                            temp2 = n.split('>')
+                            for k in temp2:
+                                if k.isnumeric():
+                                    bbox.append(int(k))
+                    bbox_denormalize_gt = []
+                    for p, b in enumerate(bbox):
+                        b = b / (task.cfg.num_bins - 1) * task.cfg.max_image_size
+                        if p % 2 == 0:
+                            b /= sample['w_resize_ratios'][i]
+                        else:
+                            b /= sample['h_resize_ratios'][i]
+                        bbox_denormalize_gt.append(int(b))
+                    
+                    # bbox[:, ::2] /= sample['w_resize_ratios'].unsqueeze(1)
+                    # bbox[:, 1::2] /= sample['h_resize_ratios'].unsqueeze(1)
+                    target_seq[j] = bbox_denormalize_gt
+
+                else:
+                    target_seq[j] = task.bpe.decode(target_seq[j])
+                    target_seq[j] = target_seq[j].replace('&&', ' ')
             
             print("gt_sentence: ", target_seq)
             print("\n")
@@ -422,7 +496,7 @@ def merge_results(task, cfg, logger, score_cnt, score_sum, results):
 
         if cfg.distributed_training.distributed_world_size == 1 or dist.get_rank() == 0:
             os.makedirs(cfg.common_eval.results_path, exist_ok=True)
-            output_path = os.path.join(cfg.common_eval.results_path, "{}_1118debug_predict.json".format(cfg.dataset.gen_subset))
+            output_path = os.path.join(cfg.common_eval.results_path, "{}_0115_pretrain_noorder_complete_predict.json".format(cfg.dataset.gen_subset))
             gather_results = list(chain(*gather_results)) if gather_results is not None else results
             with open(output_path, 'w') as fw:
                 json.dump(gather_results, fw)

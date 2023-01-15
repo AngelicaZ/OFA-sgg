@@ -7,11 +7,11 @@ WORKER_CNT=1
 export MASTER_ADDR=127.0.0.1 # 162.129.251.54
 
 # The port for communication
-export MASTER_PORT=1051
+export MASTER_PORT=3056
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 export RANK=0 
 
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 dataset_choose='VG'
 
@@ -21,6 +21,8 @@ base_dir=../../dataset/sgg_data/VG
 data=${base_dir}/VG-SGG-with-attri.h5
 dict_file=${base_dir}/VG-SGG-dicts-with-attri.json
 image_file=${base_dir}/image_data.json
+
+restore_file=../../checkpoints/ofa_tiny.pt
 
 log_dir=./sgg_logs/VG
 save_dir=./sgg_checkpoints/VG
@@ -58,7 +60,7 @@ ema_fp32="--ema-fp32"
 ema_decay=0.9999
 ema_start_update=0
 
-tgt_seq_len=350
+tgt_seq_len=100
 
 
 #           --roidb-file=${roidb_file} \
@@ -66,7 +68,7 @@ tgt_seq_len=350
 # --lr-scheduler=polynomial_decay \
 # --total-num-update=${total_num_update} \
 
-for max_epoch in 10; do
+for max_epoch in 15; do
   echo "max_epoch "${max_epoch}
   for lr in 1e-4; do
     echo "lr "${lr}
@@ -74,8 +76,8 @@ for max_epoch in 10; do
       echo "arch "${arch}
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_1129_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_1129_debug_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_1222_pretrain_bbox_noorder_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_1222_pretrain_bbox_noorder_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
@@ -126,9 +128,9 @@ for max_epoch in 10; do
           --keep-last-epochs=15 \
           --save-interval=1 --validate-interval=5 \
           --save-interval-updates=500 --validate-interval-updates=500 \
-          --eval-acc \
+          --eval-bleu \
           --eval-args='{"beam":5,"max_len":1000,"max_len_b":400}' \
-          --best-checkpoint-metric=score --maximize-best-checkpoint-metric \
+          --best-checkpoint-metric=bleu --maximize-best-checkpoint-metric \
           --max-src-length=${max_src_length} \
           --max-tgt-length=${max_tgt_length} \
           --find-unused-parameters \
