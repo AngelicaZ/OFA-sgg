@@ -57,6 +57,7 @@ def do_vg_evaluation(
             # predictions[image_id] = prediction.resize((image_width, image_height))
 
             # prediction is a sequence
+            # print("prediction: ", prediction)
             predictions[image_idx] = prediction
 
             gt = dataset.get_groundtruth(image_idx, evaluation=True)
@@ -233,96 +234,94 @@ class prepare_prediction():
         relation_raw = []
         # print("prediction: ", prediction)
         try:
-            pred_sentences = self.prediction.split('.')
+            pred_tokens = self.prediction
         except:
             print("prediction: ", self.prediction)
             pred_sentences = str(self.prediction)
-        for pred_sentence in pred_sentences:
-            pred_tokens = pred_sentence.split()
-            for j, word in enumerate(pred_tokens):
-                # print("word: ", word)
-                # bbox
-                if '<' in word:
-                    try:
-                        if '<' not in pred_tokens[j-1]:
-                            obj_name = pred_tokens[j-1]
-                        else:
-                            continue
-                        bbox = []
-                        temp0 = word.split('><')
-                        for m in temp0:
-                            temp1 = m.split('_')
-                            for n in temp1:
-                                if n.isnumeric():
-                                    bbox.append(int(n))
-                                else:
-                                    temp2 = n.split('>')
-                                    for k in temp2:
-                                        if k.isnumeric():
-                                            bbox.append(int(k))
-                        # bbox: xyxy
-                        if len(bbox) < 4:
-                            # print("Non-compliant bbox in prediction: ", bbox)
-                            continue
-                        # bbox[2] = max(bbox[2] - bbox[0], 0) # convert to xywh
-                        # bbox[3] = max(bbox[3] - bbox[1], 0)
-                        if len(bbox) > 4:
-                            bbox = bbox[:4]   
-
-                        # label
-                        if obj_name in self.dataset.class_to_ind.keys():
-                            l_idx = self.dataset.class_to_ind[obj_name]
-                            self.label.append(l_idx)
-                            obj_names.append(obj_name)
-                            box_raw.append(bbox)
-                        else:
-                            continue
-                    except:
-                        print("unexpected token: ", word)
-                
-                # conjunctions
-                elif word in ['is',',' ,'.']:
-                    continue
-                    
-                # relations
-                else:
-                    r_raw_list = []
-                    if pred_tokens[j-1] == 'is':
-                        while '<' not in pred_tokens[j+1]:
-                            r_raw_list.append(pred_tokens[j])
-                            j += 1
-                        r_raw = ' '.join(r_raw_list)
-                        
-                        if pred_tokens[0] in obj_names:
-                            obj0_name = pred_tokens[0]
-                            obj1_name = pred_tokens[j]
-                            relation_raw.append((obj0_name, obj1_name, r_raw))
-                            # print("obj0: ", obj0_name)
-                            # print("obj1: ", obj1_name)
-                        else:
-                            '''
-                            bad pred sentence example:
-                            Cannot find the objects to relation! Obj name:  sneaker
-                            obj_names:  ['building', 'window', 'building', 'street', 'car', 'bus', 'windshield']
-                            pred sentence:  building <bin_0><bin_0><bin_997><bin_996> is has window <bin_0><bin_3><bin_997><bin_99
-                            6>is . building <bin_2><bin_0><bin_995><bin_996> , on street <bin_0><bin_835><bin_996><bin_996> .. car
-                             <bin_0><bin_765><bin_997><bin_996>sitting in front of bus <bin_3><bin_0><bin_995><bin_990> is<bin_0>h
-                            as windshield <bin_4><bin_0><bin_995><bin_987> .sneaker <bin_0><bin_855><bin_0><bin_995> is. man <bin_
-                            12><bin_0><bin_995><bin_986> istire <bin_0><bin_675><bin_997><bin_996><bin_997> .<bin_0>
-                            '''
-                            # print("Cannot find the objects to relation! Obj name: ", pred_tokens[0])
-                            # print("obj_names: ", obj_names)
-                            # print("pred sentence: ", self.prediction)
-                            continue
-                    
+        # for pred_tokens in pred_sentences:
+        
+        for j, word in enumerate(pred_tokens):
+            # print("word: ", word)
+            # bbox
+            if type(word) == list:
+                try:
+                    if type(pred_tokens[j-1]) != list:
+                        obj_name = pred_tokens[j-1]
                     else:
                         continue
+                    bbox = word  # bbox: xyxy
+                    # print("bbox: ", bbox)
+                    
+                    if len(bbox) < 4:
+                        # print("Non-compliant bbox in prediction: ", bbox)
+                        continue
+                    # bbox[2] = max(bbox[2] - bbox[0], 0) # convert to xywh
+                    # bbox[3] = max(bbox[3] - bbox[1], 0)
+                    if len(bbox) > 4:
+                        bbox = bbox[:4]   
+
+                    # label
+                    if obj_name in self.dataset.class_to_ind.keys():
+                        l_idx = self.dataset.class_to_ind[obj_name]
+                        self.label.append(l_idx)
+                        obj_names.append(obj_name)
+                        box_raw.append(bbox)
+                    else:
+                        continue
+                except:
+                    print("unexpected token: ", word)
+            
+            # conjunctions
+            elif word in ['is',',' ,'.']:
+                continue
+                
+            # relations
+            else:
+                r_raw_list = []
+                if pred_tokens[j-1] == 'is':
+                    try:
+                        while type(pred_tokens[j+1]) != list:
+                            r_raw_list.append(pred_tokens[j])
+                            j += 1
+                            if j == len(pred_tokens) -1:
+                                break
+                        r_raw = ' '.join(r_raw_list)
+                    except:
+                        print("pred_tokens: ", pred_tokens)
+                        print("pred_tokens[j]: ", pred_tokens[j])
+                        print("j: ", j)
+                        pdb.set_trace()
+                    
+                    if pred_tokens[0] in obj_names:
+                        obj0_name = pred_tokens[0]
+                        obj1_name = pred_tokens[j]
+                        relation_raw.append((obj0_name, obj1_name, r_raw))
+                        # print("obj0: ", obj0_name)
+                        # print("obj1: ", obj1_name)
+                    else:
+                        '''
+                        bad pred sentence example:
+                        Cannot find the objects to relation! Obj name:  sneaker
+                        obj_names:  ['building', 'window', 'building', 'street', 'car', 'bus', 'windshield']
+                        pred sentence:  building <bin_0><bin_0><bin_997><bin_996> is has window <bin_0><bin_3><bin_997><bin_99
+                        6>is . building <bin_2><bin_0><bin_995><bin_996> , on street <bin_0><bin_835><bin_996><bin_996> .. car
+                            <bin_0><bin_765><bin_997><bin_996>sitting in front of bus <bin_3><bin_0><bin_995><bin_990> is<bin_0>h
+                        as windshield <bin_4><bin_0><bin_995><bin_987> .sneaker <bin_0><bin_855><bin_0><bin_995> is. man <bin_
+                        12><bin_0><bin_995><bin_986> istire <bin_0><bin_675><bin_997><bin_996><bin_997> .<bin_0>
+                        '''
+                        # print("Cannot find the objects to relation! Obj name: ", pred_tokens[0])
+                        # print("obj_names: ", obj_names)
+                        # print("pred sentence: ", self.prediction)
+                        continue
+                
+                else:
+                    continue
         
         # print("label: ", self.label)
         # print("relation raw: ", relation_raw)
         
-
         # bbox
+        # print("box_raw: ", box_raw)
         num_box = len(box_raw)
         try:
             assert len(self.label) == num_box
@@ -335,6 +334,7 @@ class prepare_prediction():
         self.box = np.zeros((num_box, 4))
         for i in range(num_box):
             self.box[i, :] = box_raw[i]
+        # print("self.box: ", self.box)
  
         # label
         self.label = np.asarray(self.label)
@@ -395,7 +395,7 @@ def save_output(output_folder, groundtruths, predictions, dataset):
                 'groundtruth': groundtruth,
                 'prediction': prediction
                 })
-        with open(os.path.join(output_folder, "visual_info.json"), "w") as f:
+        with open(os.path.join(output_folder, "0116_visual_info.json"), "w") as f:
             json.dump(visual_info, f)
 
 

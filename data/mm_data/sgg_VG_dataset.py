@@ -314,7 +314,7 @@ class VGDatasetReader(Dataset):
 
         # print("required_len: ", self.required_len)
         # pdb.set_trace()
-        target_seq, img, obj_labels, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len, obj_order=True)
+        target_seq, img, obj_labels, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len, obj_order=False)
         # target_seq_raw = self.target2seq_raw(img, target, self.required_len)
         # target_mask = torch.zeros(len(target_seq_raw))
         # print("target in raw dataset: ", target_seq)
@@ -450,17 +450,6 @@ class VGDatasetReader(Dataset):
             region_raw.extend(bbox[i, :])
         region = torch.tensor(region_raw)
         
-        # print("bbox value: ", bbox_value)
-        # pdb.set_trace()
-
-        # bbox_seq = []
-        # for i in range(bbox_value.shape[0]):
-        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][0].item() * 999)))))) # (bbox_value[i][0].item() # (i/20 + 0.2)
-        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][1].item() * 999))))))
-        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][2].item() * 999))))))
-        #     bbox_seq.append("<bin_{}>".format(str(round(((bbox_value[i][3].item() * 999))))))
-        #     bbox_seq.append('&&')
-
         # rearrange the objects from big to small
         if obj_order:
             new_area_list = bbox_new["area"].tolist()
@@ -472,20 +461,7 @@ class VGDatasetReader(Dataset):
 
 
         for m in range(obj_num): # each object
-            
-            # print("bbox after transform: ", [t.detach().numpy() for t in bbox_new['boxes']])
-            # pdb.set_trace()
-
-
-            # # for debugging
-            # bbox = torch.tensor([200/w, 200/h, 300/w, 300/h])
-            # patch_image, _ = self.detection_transform(image, boxes_target)
-
-            # print("bbox_value: ", bbox_value)
-            # pdb.set_trace()
-
-
-            # print("bbox: ", bbox)
+    
             if obj_order:
                 i = objid_sort[m]
             else:
@@ -501,10 +477,10 @@ class VGDatasetReader(Dataset):
                 obj_names.append(obj_name)
                 seq.append(self.bpe.encode(obj_name + '&&'))
                 # seq.append(self.bpe.encode(obj_name))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * 999))))
-                seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * 999))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * (self.num_bins - 1)))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * (self.num_bins - 1)))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * (self.num_bins - 1)))))
+                seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * (self.num_bins - 1)))))
                 seq.append(self.bpe.encode('&&is&&'))
                 # seq.append(self.bpe.encode('is'))
                 rel_cnt = 0
@@ -523,10 +499,10 @@ class VGDatasetReader(Dataset):
                         obj_names.append(obj2_name)
                         # seq.append(self.bpe.encode(obj2_name))
                         bbox2 = target.bbox[j, :]
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * 999))))
-                        seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * 999))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * (self.num_bins - 1)))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * (self.num_bins - 1)))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * (self.num_bins - 1)))))
+                        seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * (self.num_bins - 1)))))
                         if rel_cnt < rel_num:
                             seq.append(self.bpe.encode('&&,&&'))
                             # seq.append(self.bpe.encode(','))
@@ -540,11 +516,6 @@ class VGDatasetReader(Dataset):
         if required_len:
             if seq_len > required_len:
                 seq = seq[:required_len]
-        
-        # bbox_seq_len = len(bbox_seq)
-        # if required_len:
-        #     if bbox_seq_len > required_len:
-        #         bbox_seq = bbox_seq[:required_len]
         
         return seq, patch_image, obj_labels, w_resize_ratio, h_resize_ratio, region
 

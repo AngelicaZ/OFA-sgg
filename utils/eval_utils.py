@@ -93,7 +93,9 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             # print("raw tokens: ", hypos[i][0]["tokens"])
             # print("raw target: ", target)
             detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, bpe, generator)
+            # print("tokens before bpe: ", detok_hypo_str)
             detok_hypo_str = task.bpe.decode(detok_hypo_str)
+            # print("tokens after bpe: ", detok_hypo_str)
             detok_hypo_str = detok_hypo_str.replace('&&', ' ')
             pred = detok_hypo_str.split()
             for j, word in enumerate(pred):
@@ -129,9 +131,12 @@ def eval_sgg(task, generator, models, sample, **kwargs):
                     
                     bbox_denormalize = []
                     for p, b in enumerate(bbox):
+                        # print("p in prediction: ", p)
                         # print("original bbox value: ", b)
                         b = b / (task.cfg.num_bins - 1) * task.cfg.max_image_size
                         # print("bbox value after denormalization: ", b)
+
+                        # denormalize with the image size
                         if p % 2 == 0:
                             # print("w_resize_ratios: ", sample['w_resize_ratios'])
                             b /= sample['w_resize_ratios'][i]
@@ -139,6 +144,8 @@ def eval_sgg(task, generator, models, sample, **kwargs):
                             # print("h_resize_ratios: ", sample['h_resize_ratios'])
                             b /= sample['h_resize_ratios'][i]
                         # print("bbox value after w/h resize: ", b)
+
+
                         bbox_denormalize.append(int(b))
                     
                     pred[j] = bbox_denormalize
@@ -154,36 +161,35 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             print("image path: ", image_path)
             print("pred_sentence:", results[result_id])
             img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = dataset[index]
+            bbox = dict()
             for j in range(len(target_seq)):
                 if '<' in target_seq[j]:
-                    bbox = []
                     temp0 = target_seq[j].split('><')
                     for m in temp0:
                         temp1 = m.split('_')
                     for n in temp1:
                         if n.isnumeric():
-                            bbox.append(int(n))
+                            bbox[j] = int(n)
                         else:
                             temp2 = n.split('>')
                             for k in temp2:
                                 if k.isnumeric():
-                                    bbox.append(int(k))
-                    bbox_denormalize_gt = []
-                    for p, b in enumerate(bbox):
-                        b = b / (task.cfg.num_bins - 1) * task.cfg.max_image_size
-                        if p % 2 == 0:
-                            b /= sample['w_resize_ratios'][i]
-                        else:
-                            b /= sample['h_resize_ratios'][i]
-                        bbox_denormalize_gt.append(int(b))
-                    
-                    # bbox[:, ::2] /= sample['w_resize_ratios'].unsqueeze(1)
-                    # bbox[:, 1::2] /= sample['h_resize_ratios'].unsqueeze(1)
-                    target_seq[j] = bbox_denormalize_gt
-
+                                    bbox[j] = int(k)
                 else:
                     target_seq[j] = task.bpe.decode(target_seq[j])
                     target_seq[j] = target_seq[j].replace('&&', ' ')
+            
+            for bbox_id in range(int(len(bbox))):
+                
+                key = list(bbox.keys())[bbox_id]
+                value = list(bbox.values())[bbox_id]
+                value = value / (task.cfg.num_bins - 1) * task.cfg.max_image_size
+                if bbox_id % 2 == 0:
+                    value /= sample['w_resize_ratios'][i]
+                else:
+                    value /= sample['h_resize_ratios'][i]
+                target_seq[key] = [int(value.item())]
+  
             
             print("gt_sentence: ", target_seq)
             print("\n")

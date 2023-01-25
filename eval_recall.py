@@ -94,7 +94,7 @@ def eval_bleu(hyps, refs):
 
 if __name__ == "__main__":
     
-    predictions = load_json('results/sgg/VG/test_1217_pretrain_noorder_complete_predict.json')
+    predictions = load_json('results/sgg/VG/test_0115_pretrain_noorder_complete_predict.json')
 
     img_dir = '/data/c/zhuowan/gqa/data/images/'
     base_dir = 'dataset/sgg_data/VG'
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         gt_label = []
         gt_relation = []
         i += 1
-        print(f'{i}/{len(predictions)}    1129_complete')
+        print(f'{i}/{len(predictions)}    0115_complete')
         for result_id, prediction in pred.items():
             image_idx = int(result_id.split('_')[1])
             sample_id = result_id.split('_')[0]
@@ -155,6 +155,11 @@ if __name__ == "__main__":
             image_path = img_dir + img_name
             # print("image path: ", image_path)
             
+            # Extract the bounding box separately
+
+
+
+
             # print("gt: ", target_seq)
             # print("pred: ", prediction)
             target_sentence = ' '.join(target_seq)

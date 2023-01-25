@@ -1,7 +1,7 @@
 
 export MASTER_PORT=8096
 # 8087, 4081, 3053, 3054, 3055
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=2,3,4,5
 export GPUS_PER_NODE=4
 export TORCH_DISTRIBUTED_DETAIL=DEBUG
 export NCCL_P2P_LEVEL=NVL
@@ -26,7 +26,7 @@ split='test'
 log_dir=./sgg_logs_eval/VG
 mkdir -p $log_dir
 
-log_file=${log_dir}/${paras}"_"${checkpoint}"_0115.log"
+log_file=${log_dir}/${paras}"_"${checkpoint}"_0123.log"
 
 python3 -m torch.distributed.launch  --nproc_per_node=${GPUS_PER_NODE} --master_port=${MASTER_PORT} ../../evaluate.py \
     ${data} \
