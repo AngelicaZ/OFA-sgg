@@ -9,3 +9,4 @@ draft.py
 fairseq_base/*
 dataset/*
 results/*
+results/sgg/*
