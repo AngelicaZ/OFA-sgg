@@ -32,7 +32,7 @@ def evaluate_on_VG_seq(predictions, output_folder):
         required_len=tgt_seq_len
     )
 
-    iou_types = ['bbox', 'relations'] # 'bbox', 
+    iou_types = ['bbox', 'relations'] # 'bbox', 'relations'
     logger = logging.getLogger(__name__)
 
 
@@ -51,6 +51,6 @@ if __name__ == "__main__":
     #     evaluate_on_VG_seq(sys.argv[1], sys.argv[2])
     # else:
     #     raise NotImplementedError
-    predictions = load_json('results/sgg/VG/test_0115_pretrain_noorder_complete_predict.json')
+    predictions = load_json('results/sgg/VG/test_0203_PredCls_tiny_350.json')
     output_folder = 'results/sgg/VG/recall_evals/'
     evaluate_on_VG_seq(predictions, output_folder)

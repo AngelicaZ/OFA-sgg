@@ -1,3 +1,5 @@
+from bdb import set_trace
+from gc import get_debug
 import logging
 import os
 import pdb
@@ -9,6 +11,7 @@ from functools import reduce
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 import random
+from PIL import Image
 
 # from .utils import get_dataset_statistics
 # from maskrcnn_benchmark.structures.bounding_box import BoxList
@@ -43,7 +46,7 @@ def do_vg_evaluation(
     iou_thres = cfg.TEST.RELATION.IOU_THRESHOLD # 0.5
     assert mode in {'predcls', 'sgdet', 'sgcls', 'phrdet', 'preddet'}
 
-    groundtruths = []
+    groundtruths = dict()
     predictions = dict()
     for pred in predictions_raw:
         if type(pred) != dict:
@@ -60,8 +63,9 @@ def do_vg_evaluation(
             # print("prediction: ", prediction)
             predictions[image_idx] = prediction
 
-            gt = dataset.get_groundtruth(image_idx, evaluation=True)
-            groundtruths.append(gt)
+            groundtruths[image_idx] = dataset.get_groundtruth(image_idx, evaluation=True)
+            
+            # groundtruths.append(gt)
 
     save_output(output_folder, groundtruths, predictions, dataset)
     
@@ -69,7 +73,7 @@ def do_vg_evaluation(
     if "bbox" in iou_types:
         # create a Coco-like object that we can use to evaluate detection!
         anns = []
-        for image_id, gt in enumerate(groundtruths):
+        for image_idx, gt in groundtruths.items():
             labels = gt.get_field('labels').tolist() # integer
             boxes = gt.bbox.tolist() # xyxy
             for cls, box in zip(labels, boxes):
@@ -78,7 +82,7 @@ def do_vg_evaluation(
                     'bbox': [box[0], box[1], box[2] - box[0] + 1, box[3] - box[1] + 1], # xywh
                     'category_id': cls,
                     'id': len(anns),
-                    'image_id': image_id,
+                    'image_id': image_idx,
                     'iscrowd': 0,
                 })
         fauxcoco = COCO()
@@ -91,6 +95,7 @@ def do_vg_evaluation(
                 ],
             'annotations': anns,
         }
+        print("number of categories: ", len(dataset.ind_to_classes))
         fauxcoco.createIndex()
 
         # format predictions to coco-like
@@ -100,8 +105,34 @@ def do_vg_evaluation(
             # score = prediction.get_field('pred_scores').detach().cpu().numpy() # (#objs,)
             # label = prediction.get_field('pred_labels').detach().cpu().numpy() # (#objs,)
 
-            prepare_pred = prepare_prediction(prediction, dataset)
-            box, label, score = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score
+            # image_idx = int(result_id.split('_')[1])
+            # sample_id = result_id.split('_')[0]
+            # img_name = sample_id + ".jpg"
+            # img_dir = '/data/c/zhuowan/gqa/data/images/'
+            # image_path = img_dir + img_name
+            # print("image path: ", image_path)
+
+            prepare_pred = prepare_prediction(prediction, dataset, pred_mode='xywh')
+            box, label, score = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score # box is xywh
+
+            # print("prediction sentence: ", prediction)
+            # print("predicted labels: ", label)
+            # print("predicted boxes: ", box)
+            
+            # ground truth for debug
+            img = Image.open(dataset.filenames[image_idx]).convert("RGB")
+            gt_debug = groundtruths[image_idx]
+            seq, obj_labels, rel_labels = dataset.target2seq_raw(img, gt_debug, required_len=dataset.required_len, obj_order=False, add_bbox=True)
+            label_gt_debug = gt_debug.get_field('labels').tolist() # integer
+            box_gt_debug = gt_debug.bbox.tolist() # xyxy
+            for i in range(len(box_gt_debug)):
+                box_gt_debug[i][2] = max(box_gt_debug[i][2] - box_gt_debug[i][0], 0) # convert to xywh
+                box_gt_debug[i][3] = max(box_gt_debug[i][3] - box_gt_debug[i][1], 0)
+            # print("sentences_gt: ", seq)
+            # print("box_gt: ", box_gt_debug)
+            # print("label_gt: ", label_gt_debug)
+
+            # pdb.set_trace()
 
             # for predcls, we set label and score to groundtruth
             # if mode == 'predcls':
@@ -109,6 +140,7 @@ def do_vg_evaluation(
             #     score = np.ones(label.shape[0])
             #     assert len(label) == len(box)
             image_idx = np.asarray([image_idx]*len(box))
+            # score_gt_debug = np.asarray([1]*len(box))
             cocolike_predictions.append(
                 np.column_stack((image_idx, box, score, label))
                 )
@@ -117,6 +149,9 @@ def do_vg_evaluation(
         # evaluate via coco API
         res = fauxcoco.loadRes(cocolike_predictions)
         coco_eval = COCOeval(fauxcoco, res, 'bbox')
+        # imgIds = fauxcoco.getImgIds()
+        # print("imgIds: ", imgIds)
+        # pdb.set_trace()
         coco_eval.params.imgIds = list(range(len(groundtruths)))
         coco_eval.evaluate()
         coco_eval.accumulate()
@@ -175,10 +210,7 @@ def do_vg_evaluation(
         global_container['attribute_on'] = attribute_on
         global_container['num_attributes'] = num_attributes
         
-        for groundtruth, prediction in zip(groundtruths, predictions.values()):
-            # print("predictions raw: ", list(predictions.keys())[:10])
-            # print("ground truth: ", groundtruth)
-            # print("prediction before calculate relation: ", prediction)
+        for groundtruth, prediction in zip(groundtruths.values(), predictions.values()):
             # pred_local = prepare_prediction(prediction, dataset)
             # relation_local = pred_local.relation
             # if len(relation_local) != 0:
@@ -213,7 +245,7 @@ def do_vg_evaluation(
         return -1
 
 class prepare_prediction():
-    def __init__(self, prediction, dataset, pred_mode=0) -> None:
+    def __init__(self, prediction, dataset, pred_mode='xyxy') -> None:
         super().__init__()
         self.prediction = prediction
         self.dataset = dataset
@@ -223,40 +255,37 @@ class prepare_prediction():
         self.score = []
         self.relation = []
 
+        # print("self.dataset.predicate_to_ind length: ", len(self.dataset.predicate_to_ind))
+        # pdb.set_trace()
+
         '''
         prediction seq example: 
         Cat x y x y is on mat x y x y, inside house x y x y.
-        giraffe <bin_0><bin_0><bin_997><bin_996> is has head <bin_0><bin_3><bin_997><bin_996><bin_996> .
+        giraffe [0, 0, 498, 296] is has head [272, 15, 196, 381] .
 
         '''
         box_raw = []
         obj_names = []
         relation_raw = []
-        # print("prediction: ", prediction)
-        try:
-            pred_tokens = self.prediction
-        except:
-            print("prediction: ", self.prediction)
-            pred_sentences = str(self.prediction)
-        # for pred_tokens in pred_sentences:
-        
-        for j, word in enumerate(pred_tokens):
-            # print("word: ", word)
-            # bbox
-            if type(word) == list:
+
+        pred_tokens_raw = self.prediction
+
+        pred_tokens_without_bbox = []
+        for i, token_raw in enumerate(pred_tokens_raw):
+            if type(token_raw) == list:
                 try:
-                    if type(pred_tokens[j-1]) != list:
-                        obj_name = pred_tokens[j-1]
+                    if type(pred_tokens_raw[i-1]) != list:
+                        obj_name = pred_tokens_raw[i-1]
                     else:
                         continue
-                    bbox = word  # bbox: xyxy
-                    # print("bbox: ", bbox)
+                    bbox = token_raw  # bbox: xyxy
                     
                     if len(bbox) < 4:
                         # print("Non-compliant bbox in prediction: ", bbox)
                         continue
-                    # bbox[2] = max(bbox[2] - bbox[0], 0) # convert to xywh
-                    # bbox[3] = max(bbox[3] - bbox[1], 0)
+                    if pred_mode == 'xywh':
+                        bbox[2] = max(bbox[2] - bbox[0], 0) # convert to xywh
+                        bbox[3] = max(bbox[3] - bbox[1], 0)
                     if len(bbox) > 4:
                         bbox = bbox[:4]   
 
@@ -268,54 +297,121 @@ class prepare_prediction():
                         box_raw.append(bbox)
                     else:
                         continue
+                        # print("obj_name: ", obj_name)
+                        # print("len(obj_name): ", len(obj_name))
+                        # pdb.set_trace()
+                        # if len(obj_name) % 2 == 0:
+                        #     obj_name_new = obj_name[:len(obj_name)/2]
+                        #     print("obj_name_new: ", obj_name_new)
+                        #     pdb.set_trace()
+                        #     if obj_name_new in self.dataset.class_to_ind.keys():
+                        #         l_idx = self.dataset.class_to_ind[obj_name_new]
+                        #         self.label.append(l_idx)
+                        #         obj_names.append(obj_name_new)
+                        #         box_raw.append(bbox)
+                        # else:
+                        #     continue
                 except:
-                    print("unexpected token: ", word)
-            
-            # conjunctions
-            elif word in ['is',',' ,'.']:
-                continue
-                
-            # relations
+                    print("pred_tokens_raw: ", pred_tokens_raw)
+                    print("unexpected token: ", token_raw)
+                    print("obj name: ", obj_name)
             else:
-                r_raw_list = []
-                if pred_tokens[j-1] == 'is':
-                    try:
-                        while type(pred_tokens[j+1]) != list:
-                            r_raw_list.append(pred_tokens[j])
-                            j += 1
-                            if j == len(pred_tokens) -1:
-                                break
-                        r_raw = ' '.join(r_raw_list)
-                    except:
-                        print("pred_tokens: ", pred_tokens)
-                        print("pred_tokens[j]: ", pred_tokens[j])
-                        print("j: ", j)
-                        pdb.set_trace()
-                    
-                    if pred_tokens[0] in obj_names:
-                        obj0_name = pred_tokens[0]
-                        obj1_name = pred_tokens[j]
-                        relation_raw.append((obj0_name, obj1_name, r_raw))
-                        # print("obj0: ", obj0_name)
-                        # print("obj1: ", obj1_name)
-                    else:
-                        '''
-                        bad pred sentence example:
-                        Cannot find the objects to relation! Obj name:  sneaker
-                        obj_names:  ['building', 'window', 'building', 'street', 'car', 'bus', 'windshield']
-                        pred sentence:  building <bin_0><bin_0><bin_997><bin_996> is has window <bin_0><bin_3><bin_997><bin_99
-                        6>is . building <bin_2><bin_0><bin_995><bin_996> , on street <bin_0><bin_835><bin_996><bin_996> .. car
-                            <bin_0><bin_765><bin_997><bin_996>sitting in front of bus <bin_3><bin_0><bin_995><bin_990> is<bin_0>h
-                        as windshield <bin_4><bin_0><bin_995><bin_987> .sneaker <bin_0><bin_855><bin_0><bin_995> is. man <bin_
-                        12><bin_0><bin_995><bin_986> istire <bin_0><bin_675><bin_997><bin_996><bin_997> .<bin_0>
-                        '''
-                        # print("Cannot find the objects to relation! Obj name: ", pred_tokens[0])
-                        # print("obj_names: ", obj_names)
-                        # print("pred sentence: ", self.prediction)
-                        continue
-                
-                else:
+                pred_tokens_without_bbox.append(token_raw)
+        
+        pred_sentences_full = ' '.join(pred_tokens_without_bbox)
+        pred_sentences = pred_sentences_full.split('.')
+        # print("pred_sentences: ", pred_sentences)
+        # pdb.set_trace()
+
+        for pred_sentence in pred_sentences:
+            
+            try: 
+                pred_tokens = []
+                pred_subsentences_without_coma = pred_sentence.split(',')
+                for i, pred_subsentence in enumerate(pred_subsentences_without_coma):
+                    pred_sub_tokens = pred_subsentence.split()
+                    pred_tokens.extend(pred_sub_tokens)
+                    if i != len(pred_subsentences_without_coma)-1:
+                        pred_tokens.append(',')
+            except:
+                pred_tokens = pred_sentence.split()
+
+
+            for j, word in enumerate(pred_tokens):
+
+                while '' in pred_tokens:
+                    pred_tokens.remove('')
+
+                if len(pred_tokens) == 1:
                     continue
+                    
+                if '<' in word or '>' in word:
+                    continue
+                    
+                if len(word) == 1:
+                    continue
+
+                # bbox or obj label
+                if (type(word) == list) or (word in obj_names):
+                    continue
+                
+                # conjunctions
+                elif word in ['is','isis',',' ,'.']:
+                    continue
+                    
+                # relations
+                else:
+                    r_raw_list = []
+                    if  'is' in pred_tokens[j-1] or  'isis' in pred_tokens[j-1] or ',' in pred_tokens[j-1]:
+                        if j < (len(pred_tokens)-2): 
+                            try:
+                                # if j == len(pred_tokens) - 1:
+                                #     continue
+                                while ',' not in pred_tokens[j+1]:
+                                    r_raw_list.append(pred_tokens[j])
+                                    j += 1
+                                    if j >= len(pred_tokens) -1:
+                                        break
+                                # if len(r_raw_list) == 0:
+                                #     continue
+                                
+                            except:
+                                print("pred_tokens: ", pred_tokens)
+                                print("pred_tokens[j]: ", pred_tokens[j])
+                                print("j: ", j)
+                                print("r_raw_list: ", r_raw_list)
+                                pdb.set_trace()
+                        else:
+                            while j<len(pred_tokens)-1: #  and j<len(pred_tokens)-2
+                                # print("j: ", j)
+                                r_raw_list.append(pred_tokens[j])
+                                j += 1
+                        r_raw = ' '.join(r_raw_list)
+                        
+                        if pred_tokens[0] in obj_names:
+                            obj0_name = pred_tokens[0]
+                            obj1_name = pred_tokens[j]
+                            relation_raw.append((obj0_name, obj1_name, r_raw))
+                            # print("obj0: ", obj0_name)
+                            # print("obj1: ", obj1_name)
+                        else:
+                            '''
+                            bad pred sentence example:
+                            Cannot find the objects to relation! Obj name:  sneaker
+                            obj_names:  ['building', 'window', 'building', 'street', 'car', 'bus', 'windshield']
+                            pred sentence:  building <bin_0><bin_0><bin_997><bin_996> is has window <bin_0><bin_3><bin_997><bin_99
+                            6>is . building <bin_2><bin_0><bin_995><bin_996> , on street <bin_0><bin_835><bin_996><bin_996> .. car
+                                <bin_0><bin_765><bin_997><bin_996>sitting in front of bus <bin_3><bin_0><bin_995><bin_990> is<bin_0>h
+                            as windshield <bin_4><bin_0><bin_995><bin_987> .sneaker <bin_0><bin_855><bin_0><bin_995> is. man <bin_
+                            12><bin_0><bin_995><bin_986> istire <bin_0><bin_675><bin_997><bin_996><bin_997> .<bin_0>
+                            '''
+                            # print("Cannot find the objects to relation! Obj name: ", pred_tokens[0])
+                            # print("obj_names: ", obj_names)
+                            # print("pred sentence: ", self.prediction)
+                            continue
+                    
+                    else:
+                        continue
         
         # print("label: ", self.label)
         # print("relation raw: ", relation_raw)
@@ -325,6 +421,7 @@ class prepare_prediction():
         num_box = len(box_raw)
         try:
             assert len(self.label) == num_box
+            assert len(self.label) == len(obj_names)
         except:
             print("prediction: ", prediction)
             print("label: ", self.label)
@@ -344,21 +441,62 @@ class prepare_prediction():
             try:
                 index0 = obj_names.index(obj0_name)
                 index1 = obj_names.index(obj1_name)
+            
+                # if (index1 == 4) and (index0 == 2):
+                #     print("index0: ", index0)
+                #     print("index1: ", index1)
+                #     print("self.box.shape: ", self.box.shape)
+                #     pdb.set_trace()
+
+                # if index0 >= self.box.shape[0]:
+                #     print("index0: ", index0)
+                #     print("self.box.shape: ", self.box.shape)
+                #     pdb.set_trace()
+                #     index0 = self.box.shape[0] - 1
+                # if index1 >= self.box.shape[0]:
+                #     print("index1: ", index1)
+                #     print("self.box.shape: ", self.box.shape)
+                #     pdb.set_trace()
+                #     index1 = self.box.shape[0] - 1
+                # if index1 == 4 and self.box.shape[0] == 4:
+                #     index1 = 3
+                #     print("self.box.shape[0] normal: ", self.box.shape[0])
+                #     pdb.set_trace()
                 r_index = self.dataset.predicate_to_ind[r_raw]
                 self.relation.append([index0, index1, r_index])
             except:
-                print("obj0_name: ", obj0_name)
-                print("obj1_name: ", obj1_name)
-                print("relation: ", r_raw)
+                try:
+                    if len(obj1_name) % 2 == 0:
+                        obj1_name = obj1_name[:len(obj1_name)/2]
+                        index0 = obj_names.index(obj0_name)
+                        index1 = obj_names.index(obj1_name)
+                        # if (index1 == 4) and (index0 == 2):
+                        #     print("index0 in double: ", index0)
+                        #     print("index1 in double: ", index1)
+                        #     print("self.box.shape in double: ", self.box.shape)
+                        #     pdb.set_trace()
+                        # if index0 >= self.box.shape[0]:
+                        #     index0 = self.box.shape[0] - 1
+                        # if index1 >= self.box.shape[0]:
+                        #     index1 = self.box.shape[0] - 1
+                        # if index1 == 4 and self.box.shape[0] == 4:
+                        #     index1 = 3
+                        #     print("self.box.shape[0] double name: ", self.box.shape[0])
+                        #     pdb.set_trace()
+                        r_index = self.dataset.predicate_to_ind[r_raw]
+                        self.relation.append([index0, index1, r_index])
+                except:
+                    continue
+                    # print("obj0_name: ", obj0_name)
+                    # print("obj1_name: ", obj1_name)
+                    # print("relation: ", r_raw)
+                # pdb.set_trace()
         self.relation = np.asarray(self.relation)
-
 
         # scores are all 1
         self.score = np.ones(self.box.shape[0])
 
-        # if pred_mode == 1:
-        #     box = box.tolist()
-        #     label = label.tolist()
+        
     
     def get_bbox(self):
         return self.box
@@ -376,26 +514,24 @@ def save_output(output_folder, groundtruths, predictions, dataset):
         #    f.write(result_str)
         # visualization information
         visual_info = []
-        for image_id, (groundtruth, prediction) in enumerate(zip(groundtruths, predictions.values())):
-            # print("prediction in save output: ", prediction)
+        for image_id, (groundtruth, prediction) in enumerate(zip(groundtruths.values(), predictions.values())):
             img_file = os.path.abspath(dataset.filenames[image_id])
             groundtruth = [
                 [b[0], b[1], b[2], b[3], dataset.categories[l]] # xyxy, str
                 for b, l in zip(groundtruth.bbox.tolist(), groundtruth.get_field('labels').tolist())
                 ]
-            # print("ground truth: ", groundtruth)
+            
             prediction = [
                 [b[0], b[1], b[2], b[3], dataset.categories[l]] # xyxy, str
-                for b, l in zip(prepare_prediction(prediction, dataset, pred_mode=1).get_bbox(),prepare_prediction(prediction, dataset, pred_mode=1).get_label())
+                for b, l in zip(prepare_prediction(prediction, dataset).get_bbox(),prepare_prediction(prediction, dataset).get_label())
                 ]
-            # print("prediction: ", prediction)
-            # pdb.set_trace()
+
             visual_info.append({
                 'img_file': img_file,
                 'groundtruth': groundtruth,
                 'prediction': prediction
                 })
-        with open(os.path.join(output_folder, "0116_visual_info.json"), "w") as f:
+        with open(os.path.join(output_folder, "0210_visual_info.json"), "w") as f:
             json.dump(visual_info, f)
 
 
@@ -423,26 +559,34 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container['gt_boxes'] = groundtruth.convert('xyxy').bbox.detach().cpu().numpy()                   # (#gt_objs, 4)
     local_container['gt_classes'] = groundtruth.get_field('labels').long().detach().cpu().numpy()           # (#gt_objs, )
 
+    # ground truth for debug
+    # relation = groundtruth.get_field('relation_tuple').long().detach().cpu().numpy()
+    # local_container['pred_rel_inds'] = relation
+    # local_container['rel_scores'] = np.ones((len(relation), 1))
+    # box = groundtruth.convert('xyxy').bbox.detach().cpu().numpy()
+    # local_container['pred_boxes'] = box
+    # local_container['pred_classes'] = groundtruth.get_field('labels').long().detach().cpu().numpy()
+    # local_container['obj_scores'] = np.ones((len(box), 1))
+
 
     prepare_pred = prepare_prediction(prediction, dataset)
     box, label, score, relation = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score, prepare_pred.relation
 
-    
-    
-
     # about relations
     # local_container['pred_rel_inds'] = prediction.get_field('rel_pair_idxs').long().detach().cpu().numpy()  # (#pred_rels, 2)
     # local_container['rel_scores'] = prediction.get_field('pred_rel_scores').detach().cpu().numpy()          # (#pred_rels, num_pred_class)
-    local_container['pred_rel_inds'] = relation
-    local_container['rel_scores'] = np.ones((len(relation), 1))
-    # print("pred_rel_inds: ", local_container['pred_rel_inds'])
-    # print("rel_scores: ", local_container['rel_scores'])
 
     # if there is no predict relations for current image, then skip it
-    if len(local_container['pred_rel_inds']) == 0:
+    if relation.shape[0] == 0:
         return
 
-    # pdb.set_trace()
+    num_pred_class = 51
+    try:
+        local_container['pred_rel_inds'] = relation[:, :2]
+        local_container['rel_scores'] = np.ones((relation.shape[0], num_pred_class))
+    except:
+        print("relation shape: ", relation.shape)
+        pdb.set_trace()
 
     # about objects
     # local_container['pred_boxes'] = prediction.convert('xyxy').bbox.detach().cpu().numpy()                  # (#pred_objs, 4)

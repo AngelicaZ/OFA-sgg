@@ -64,12 +64,10 @@ class SGRecall(SceneGraphEvaluation):
 
         iou_thres = global_container['iou_thres']
 
-
-        # pdb.set_trace()
-        # pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,1:].argmax(1)))
-        pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,:].argmax(1)))
-        # pred_scores = rel_scores[:,1:].max(1)
-        pred_scores = rel_scores[:,:].max(1)
+        pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,1:].argmax(1)))
+        # pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,:].argmax(1))) # argmax:Returns the indices of the maximum values along an axis
+        pred_scores = rel_scores[:,1:].max(1)
+        # pred_scores = rel_scores[:,:].max(1)
 
         gt_triplets, gt_triplet_boxes, _ = _triplet(gt_rels, gt_classes, gt_boxes)
         local_container['gt_triplets'] = gt_triplets
@@ -117,21 +115,51 @@ class SGNoGraphConstraintRecall(SceneGraphEvaluation):
 
     def calculate_recall(self, global_container, local_container, mode):
         obj_scores = local_container['obj_scores']
-        pred_rel_inds = local_container['pred_rel_inds']
+        pred_rel_inds = local_container['pred_rel_inds'] # np.ndarray
         rel_scores = local_container['rel_scores']
         pred_boxes = local_container['pred_boxes']
         pred_classes = local_container['pred_classes']
         gt_rels = local_container['gt_rels']
+        
+        
+        '''
+        sub_id, pred_rel, ob_id
+        pred_rel_inds:  [[ 0  1 20] [ 0  2 48]] 
+        obj_scores:  [1. 1. 1. 1. 1. 1.] 
+        '''
+        # print("pred_rel_inds: ", pred_rel_inds)
+        # print("obj id: ", obj_scores)
+        # # obj_scores_per_rel = np.ones((len(pred_rel_inds), 1))
+        # # print("type pred_rel_inds: ", type(pred_rel_inds))
+        # pdb.set_trace()
+        # try:
+        #     obj_scores_per_rel = obj_scores[pred_rel_inds].prod()
+        # except:
+        #     print("pred_rel_inds: ", pred_rel_inds)
+        #     print("obj_scores: ", obj_scores)
+        #     pdb.set_trace()
 
-        # obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
-        obj_scores_per_rel = obj_scores[pred_rel_inds[:,:2]].prod(1)
-        # nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,1:]
-        nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,:]
+        try:
+            obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
+        except:
+            obj_scores = np.append(obj_scores, 1)
+            obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
+
+        try:
+            nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,1:]
+        except:
+            print("rel_scores: ", rel_scores)
+            print("rel_scores shape: ", rel_scores.shape)
+            print("obj_scores_per_rel: ", obj_scores_per_rel)
+            print("obj_scores_per_rel shape: ", obj_scores_per_rel.shape)
+            pdb.set_trace()
+    
+    
         nogc_score_inds = argsort_desc(nogc_overall_scores)[:100]
-        # nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]+1))
-        nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]))
-        # nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,1]+1]
-        nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,1]]
+        nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]+1))
+        # nogc_pred_rels = np.column_stack((pred_rel_inds[nogc_score_inds[:,0]], nogc_score_inds[:,1]))
+        nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,1]+1]
+        # nogc_pred_scores = rel_scores[nogc_score_inds[:,0], nogc_score_inds[:,:]]
 
         nogc_pred_triplets, nogc_pred_triplet_boxes, _ = _triplet(
                 nogc_pred_rels, pred_classes, pred_boxes, nogc_pred_scores, obj_scores
@@ -206,7 +234,7 @@ class SGZeroShotRecall(SceneGraphEvaluation):
 
 
 """
-No Graph Constraint Mean Recall
+No Graph Constraint Zero Shot Recall
 """
 class SGNGZeroShotRecall(SceneGraphEvaluation):
     def __init__(self, result_dict):
@@ -484,8 +512,26 @@ def _triplet(relations, classes, boxes, predicate_scores=None, class_scores=None
         triplets_boxes (#rel, 8) array of boxes for the parts
         triplets_scores (#rel, 3) : (sub_score, pred_score, ob_score)
     """
-    sub_id, ob_id, pred_label = relations[:, 0], relations[:, 1], relations[:, 2]
-    triplets = np.column_stack((classes[sub_id], pred_label, classes[ob_id]))
+    try:
+        sub_id, ob_id, pred_label = relations[:, 0], relations[:, 1], relations[:, 2]
+        for i, sub_id_single in enumerate(sub_id):
+            if sub_id_single >= len(classes):
+                sub_id_single = len(classes) - 1
+                sub_id[i] = sub_id_single
+        for i, ob_id_single in enumerate(ob_id):
+            if ob_id_single >= len(classes): 
+                ob_id_single = len(classes) - 1
+                ob_id[i] = ob_id_single
+        triplets = np.column_stack((classes[sub_id], pred_label, classes[ob_id]))
+    except:
+        print("sub_id: ", sub_id)
+        print("ob_id: ", ob_id)
+        print("classes: ", classes)
+        print("classes[sub_id]: ", classes[sub_id])
+        print("classes[ob_id]: ", classes[ob_id])
+        print("pred_label: ", pred_label)
+        print("triplets: ",triplets)
+        pdb.set_trace()
     triplet_boxes = np.column_stack((boxes[sub_id], boxes[ob_id]))
 
     triplet_scores = None

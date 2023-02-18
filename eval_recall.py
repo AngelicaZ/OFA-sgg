@@ -156,24 +156,42 @@ if __name__ == "__main__":
             # print("image path: ", image_path)
             
             # Extract the bounding box separately
+            # print("prediction: ", prediction)
+            pred_sent_without_bbox = []
+            for token in prediction:
+                if type(token) == list:
+                    continue
+                else:
+                    pred_sent_without_bbox.append(token)
+            pred_sentence_without_bbox = ' '.join(pred_sent_without_bbox)
+            # print("pred_sentence: ", pred_sentence_without_bbox)
+
+            target_sent_without_bbox = []
+            for target_token in target_seq:
+                if type(target_token) == list:
+                    continue
+                else:
+                    target_sent_without_bbox.append(target_token)
+            target_sentence_without_bbox = ' '.join(target_sent_without_bbox)
+            # print("target_sentence: ", target_sentence_without_bbox)
+            # pdb.set_trace()
 
 
 
 
             # print("gt: ", target_seq)
             # print("pred: ", prediction)
-            target_sentence = ' '.join(target_seq)
-            bleu_score = eval_bleu(prediction, target_sentence)
+            
+            bleu_score = eval_bleu(pred_sentence_without_bbox, target_sentence_without_bbox)
             bleu_scores.append(bleu_score)
 
-            pred_sentences = prediction.split('.')
+            pred_sentences = pred_sentence_without_bbox.split('.')
             for pred_sent in pred_sentences:
                 pred_tokens = pred_sent.split(' ')
                 # print("pred tokens origin: ", pred_tokens)
                 while '' in pred_tokens:
                     pred_tokens.remove('')
                 
-                # j = 0
                 for j, pred_token in enumerate(pred_tokens):
                     if j == 0 or j == len(pred_tokens)-1:
                         pred_label.append(pred_tokens[j])
@@ -188,12 +206,8 @@ if __name__ == "__main__":
                         continue
                     else:
                         r_raw_list = []
-                        # print("pred_tokens[j]: ", pred_tokens[j])
-                        # print("pred_tokens[j-1]: ", pred_tokens[j-1])
                         if 'is' in pred_tokens[j-1] or ',' in pred_tokens[j-1]:
                             if j < (len(pred_tokens)-2): 
-                                # print("j: ", j)
-                                # print("pred_tokens[j] origin: ", pred_tokens[j])
                                 try:
                                     while (',' not in pred_tokens[j+1]):   # while j<len(pred_tokens)-1:
                                         r_raw_list.append(pred_tokens[j])

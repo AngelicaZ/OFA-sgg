@@ -6,6 +6,7 @@
 import math
 import random
 from typing import Any, Dict, List, Optional, Tuple
+import pdb
 
 import torch
 import torch.nn as nn
@@ -741,6 +742,12 @@ class TransformerEncoder(FairseqEncoder):
             encoder_padding_mask = torch.cat([image_padding_mask_2, encoder_padding_mask], dim=1)
         has_pads = (src_tokens.device.type == "xla" or encoder_padding_mask.any())
 
+        # print("src_tokens: ", src_tokens)
+        # print("src_tokens shape: ", src_tokens.shape)
+        # print("min utils.new_arange(src_tokens): ", torch.min(utils.new_arange(src_tokens), 1))
+        # print("max utils.new_arange(src_tokens): ", torch.max(utils.new_arange(src_tokens), 1))
+        # if src_tokens.shape[-1] > 1026:
+        #     src_tokens = 
         pos_embed = self.embed_positions(utils.new_arange(src_tokens))
         x, encoder_embedding = self.forward_embedding(
             src_tokens, image_embed, image_embed_2, token_embeddings,

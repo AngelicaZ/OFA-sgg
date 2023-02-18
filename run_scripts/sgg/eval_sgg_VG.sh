@@ -1,7 +1,7 @@
 
-export MASTER_PORT=8096
+export MASTER_PORT=8098
 # 8087, 4081, 3053, 3054, 3055
-export CUDA_VISIBLE_DEVICES=2,3,4,5
+export CUDA_VISIBLE_DEVICES=3,5,6,7
 export GPUS_PER_NODE=4
 export TORCH_DISTRIBUTED_DETAIL=DEBUG
 export NCCL_P2P_LEVEL=NVL
@@ -17,17 +17,19 @@ data=${base_dir}/VG-SGG-with-attri.h5
 # image_file=${base_dir}/image_data.json
 
 checkpoint=checkpoint_best
-paras=VG_1222_pretrain_bbox_noorder_15_1e-4_ofa_tiny_100
+paras=VG_0130_SGCls_15_1e-4_ofa_tiny_350
 path=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 result_path=../../results/sgg/VG
 # selected_cols=1,4,2
-split='test'
+split='train'
 
 log_dir=./sgg_logs_eval/VG
 mkdir -p $log_dir
 
-log_file=${log_dir}/${paras}"_"${checkpoint}"_0123.log"
+log_file=${log_dir}/${paras}"_"${checkpoint}"_on_training_set.log"
 
+# while true; do
+echo "name: "${paras}"_"${checkpoint}"_on_training_set"
 python3 -m torch.distributed.launch  --nproc_per_node=${GPUS_PER_NODE} --master_port=${MASTER_PORT} ../../evaluate.py \
     ${data} \
     --path=${path} \
@@ -45,5 +47,7 @@ python3 -m torch.distributed.launch  --nproc_per_node=${GPUS_PER_NODE} --master_
     --fp16 \
     --num-workers=0 > ${log_file} 2>&1 \
     --model-overrides="{\"data\":\"${data}\",\"bpe_dir\":\"${bpe_dir}\",\"eval_cider\":False}"
+
+# done
 
 # python VG_eval.py ../../results/sgg/test_1007l2_predict.json_predict.json ../../dataset/sgg_data/VG/test_caption_coco_format.json

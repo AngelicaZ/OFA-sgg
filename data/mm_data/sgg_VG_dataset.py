@@ -46,6 +46,7 @@ def collate(samples, pad_idx, eos_idx):
     id = np.array([s["id"] for s in samples])
     idxes = np.array([s["idx"] for s in samples])
     src_tokens = merge("source")
+    # print("src_tokens shape: ", src_tokens.shape)
     src_lengths = torch.LongTensor([s["source"].ne(pad_idx).long().sum() for s in samples])
 
     patch_images = torch.stack([sample['patch_image'] for sample in samples], dim=0)
@@ -147,8 +148,16 @@ class SggVGDataset(OFADataset):
         
         patch_mask = torch.tensor([True])
 
+        # print("src_text: ", src_text)
         src_caption = self.pre_caption(src_text)
+        # print("src_caption: ", src_caption)
         src_item = self.encode_text(self.prompt.format(src_caption))
+        src_item_list = src_item.tolist()
+        if len(src_item_list) > 1022:
+            src_item_list = src_item_list[:1022]
+        src_item = torch.Tensor(src_item_list).long()
+        # print("src_item: ", src_item)
+        # print("src item shape: ", src_item.shape)
 
         src_item = torch.cat([self.bos_item, src_item, self.eos_item])
         target_item = torch.cat([tgt_item, self.eos_item])
@@ -314,17 +323,18 @@ class VGDatasetReader(Dataset):
 
         # print("required_len: ", self.required_len)
         # pdb.set_trace()
-        target_seq, img, obj_labels, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len, obj_order=False)
+        target_seq, img, bbox_seq, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len, obj_order=False)
         # target_seq_raw = self.target2seq_raw(img, target, self.required_len)
         # target_mask = torch.zeros(len(target_seq_raw))
         # print("target in raw dataset: ", target_seq)
 
-        # src_text = ' '.join(obj_labels)
-        src_text = ''
+        src_text = ' '.join(bbox_seq)
+        # print("src_text: ", src_text)
+        # src_text = ''
 
         return img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region
 
-    def target2seq_raw(self, image, target, required_len=None, obj_order=False):
+    def target2seq_raw(self, image, target, required_len=None, obj_order=False, add_bbox=False):
         seq = []
         obj_names = []
         rel_names = []
@@ -376,6 +386,11 @@ class VGDatasetReader(Dataset):
                 obj_name = self.ind_to_classes[obj_id]
                 obj_names.append(obj_name)
                 seq.append(obj_name)
+                if add_bbox:
+                    seq.append("<bin_{}>".format(str(round(bbox_value[i][0].item() * (self.num_bins - 1)))))
+                    seq.append("<bin_{}>".format(str(round(bbox_value[i][1].item() * (self.num_bins - 1)))))
+                    seq.append("<bin_{}>".format(str(round(bbox_value[i][2].item() * (self.num_bins - 1)))))
+                    seq.append("<bin_{}>".format(str(round(bbox_value[i][3].item() * (self.num_bins - 1)))))
                 seq.append('is')
 
                 rel_cnt = 0
@@ -393,8 +408,12 @@ class VGDatasetReader(Dataset):
                             
                         seq.append(obj2_name)
                         obj_names.append(obj2_name)
-                        
                         bbox2 = target.bbox[j, :]
+                        if add_bbox:
+                            seq.append("<bin_{}>".format(str(round(bbox_value[j][0].item() * (self.num_bins - 1)))))
+                            seq.append("<bin_{}>".format(str(round(bbox_value[j][1].item() * (self.num_bins - 1)))))
+                            seq.append("<bin_{}>".format(str(round(bbox_value[j][2].item() * (self.num_bins - 1)))))
+                            seq.append("<bin_{}>".format(str(round(bbox_value[j][3].item() * (self.num_bins - 1)))))
                         
                         if rel_cnt < rel_num:
                             seq.append(',')  
@@ -459,6 +478,44 @@ class VGDatasetReader(Dataset):
                 new_objid = new_area_list.index(bbox_new["area"].tolist()[i])
                 objid_sort.append(new_objid)
 
+        bbox_seq = []
+        for m in range(obj_num):
+            if obj_order:
+                i = objid_sort[m]
+            else:
+                i = m
+            bbox_seq_i = []
+            x1 = round(bbox_value[i][0].item() * (self.num_bins - 1))
+            y1 = round(bbox_value[i][1].item() * (self.num_bins - 1))
+            x2 = round(bbox_value[i][2].item() * (self.num_bins - 1))
+            y2 = round(bbox_value[i][3].item() * (self.num_bins - 1))
+
+            bbox_vals_normalize = [x1, y1, x2, y2]
+            for n,val in enumerate(bbox_vals_normalize):
+                if val < 0:
+                    bbox_vals_normalize[n] = abs(bbox_vals_normalize[n])
+                if val > self.num_bins - 1:
+                    bbox_vals_normalize[n] = self.num_bins - 1
+
+            # For PredCls,add obj labels
+            # obj_id = target.extra_fields['labels'][i]
+            # obj_name = self.ind_to_classes[obj_id]
+            # bbox_seq_i.append(obj_name)
+
+            # For PredCls and SGCls, add bbox
+            bbox_seq_i.append("<bin_{}>".format(str(bbox_vals_normalize[0])))
+            bbox_seq_i.append("<bin_{}>".format(str(bbox_vals_normalize[1])))
+            bbox_seq_i.append("<bin_{}>".format(str(bbox_vals_normalize[2])))
+            bbox_seq_i.append("<bin_{}>".format(str(bbox_vals_normalize[3])))
+            
+            if m < obj_num - 1:
+                bbox_seq_i.append(',')
+            else:
+                bbox_seq_i.append('.')
+            bbox_seq_i = ' '.join(bbox_seq_i)
+            # print("bbox_seq_i: ", bbox_seq_i)
+            bbox_seq.append(bbox_seq_i)
+
 
         for m in range(obj_num): # each object
     
@@ -517,7 +574,7 @@ class VGDatasetReader(Dataset):
             if seq_len > required_len:
                 seq = seq[:required_len]
         
-        return seq, patch_image, obj_labels, w_resize_ratio, h_resize_ratio, region
+        return seq, patch_image, bbox_seq, w_resize_ratio, h_resize_ratio, region
 
 
     def get_statistics(self):

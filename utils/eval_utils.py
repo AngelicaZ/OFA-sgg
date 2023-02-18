@@ -35,7 +35,6 @@ def decode_fn(x, tgt_dict, bpe, generator, tokenizer=None):
         x = tokenizer.decode(x)
     return x
 
-
 def eval_caption(task, generator, models, sample, **kwargs):
     transtab = str.maketrans({key: None for key in string.punctuation})
     hypos = task.inference_step(generator, models, sample)
@@ -72,7 +71,7 @@ def eval_sgg(task, generator, models, sample, **kwargs):
         dict_file = task.cfg.dict_file
         image_file = task.cfg.image_file
         tgt_seq_len = task.cfg.tgt_seq_len
-        split = 'test'
+        split = 'train'
         # print("split: ", split)
 
         dataset = VGDatasetReader(
@@ -89,7 +88,10 @@ def eval_sgg(task, generator, models, sample, **kwargs):
         for i, sample_id in enumerate(sample["id"].tolist()):
             index = sample["idx"].tolist()[i]
             bpe = None
-            target = sample["target"].tolist()[i]
+            gt_target = dataset.get_groundtruth(index)
+            # print("target: ", target)
+            # pdb.set_trace()
+            (w, h) = gt_target.size
             # print("raw tokens: ", hypos[i][0]["tokens"])
             # print("raw target: ", target)
             detok_hypo_str = decode_fn(hypos[i][0]["tokens"], task.tgt_dict, bpe, generator)
@@ -121,7 +123,7 @@ def eval_sgg(task, generator, models, sample, **kwargs):
 
                     # bbox: xyxy
                     if len(bbox) < 4:
-                        print("Non-compliant bbox in prediction: ", bbox)
+                        # print("Non-compliant bbox in prediction: ", bbox)
                         continue
                     bbox[2] = max(bbox[2] - bbox[0], 0)
                     bbox[3] = max(bbox[3] - bbox[1], 0)
@@ -131,22 +133,27 @@ def eval_sgg(task, generator, models, sample, **kwargs):
                     
                     bbox_denormalize = []
                     for p, b in enumerate(bbox):
-                        # print("p in prediction: ", p)
-                        # print("original bbox value: ", b)
                         b = b / (task.cfg.num_bins - 1) * task.cfg.max_image_size
-                        # print("bbox value after denormalization: ", b)
 
                         # denormalize with the image size
-                        if p % 2 == 0:
-                            # print("w_resize_ratios: ", sample['w_resize_ratios'])
-                            b /= sample['w_resize_ratios'][i]
-                        else:
-                            # print("h_resize_ratios: ", sample['h_resize_ratios'])
-                            b /= sample['h_resize_ratios'][i]
-                        # print("bbox value after w/h resize: ", b)
-
-
-                        bbox_denormalize.append(int(b))
+                        try:
+                            if p % 2 == 0:
+                                b /= sample['w_resize_ratios'][i]
+                                if b > 512:
+                                    b = w
+                            else:
+                                b /= sample['h_resize_ratios'][i]
+                                if b > 512:
+                                    b = h
+                            
+                            bbox_denormalize.append(int(b))
+                        except:
+                            print("b: ", b)
+                            print("w_resize_ratios: ", sample['w_resize_ratios'][i])
+                            print("h_resize_ratios: ", sample['h_resize_ratios'][i])
+                            print("w: ", w)
+                            print("h: ", h)
+                            pdb.set_trace()
                     
                     pred[j] = bbox_denormalize
                     # print("pred[j]: ", pred[j])
@@ -156,43 +163,42 @@ def eval_sgg(task, generator, models, sample, **kwargs):
             result_id = str(sample_id) + '_' + str(index)
             results[result_id] = pred
 
-            img_name = sample_id + ".jpg"
-            image_path = img_dir + img_name
-            print("image path: ", image_path)
-            print("pred_sentence:", results[result_id])
-            img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = dataset[index]
-            bbox = dict()
-            for j in range(len(target_seq)):
-                if '<' in target_seq[j]:
-                    temp0 = target_seq[j].split('><')
-                    for m in temp0:
-                        temp1 = m.split('_')
-                    for n in temp1:
-                        if n.isnumeric():
-                            bbox[j] = int(n)
-                        else:
-                            temp2 = n.split('>')
-                            for k in temp2:
-                                if k.isnumeric():
-                                    bbox[j] = int(k)
-                else:
-                    target_seq[j] = task.bpe.decode(target_seq[j])
-                    target_seq[j] = target_seq[j].replace('&&', ' ')
+
+            # print results
+            # img_name = sample_id + ".jpg"
+            # image_path = img_dir + img_name
+            # print("image path: ", image_path)
+            # print("pred_sentence:", results[result_id])
+            # img, target_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = dataset[index]
+            # bbox = dict()
+            # for j in range(len(target_seq)):
+            #     if '<' in target_seq[j]:
+            #         temp0 = target_seq[j].split('><')
+            #         for m in temp0:
+            #             temp1 = m.split('_')
+            #         for n in temp1:
+            #             if n.isnumeric():
+            #                 bbox[j] = int(n)
+            #             else:
+            #                 temp2 = n.split('>')
+            #                 for k in temp2:
+            #                     if k.isnumeric():
+            #                         bbox[j] = int(k)
+            #     else:
+            #         target_seq[j] = task.bpe.decode(target_seq[j])
+            #         target_seq[j] = target_seq[j].replace('&&', ' ')
             
-            for bbox_id in range(int(len(bbox))):
-                
-                key = list(bbox.keys())[bbox_id]
-                value = list(bbox.values())[bbox_id]
-                value = value / (task.cfg.num_bins - 1) * task.cfg.max_image_size
-                if bbox_id % 2 == 0:
-                    value /= sample['w_resize_ratios'][i]
-                else:
-                    value /= sample['h_resize_ratios'][i]
-                target_seq[key] = [int(value.item())]
-  
-            
-            print("gt_sentence: ", target_seq)
-            print("\n")
+            # for bbox_id in range(int(len(bbox))):
+            #     key = list(bbox.keys())[bbox_id]
+            #     value = list(bbox.values())[bbox_id]
+            #     value = value / (task.cfg.num_bins - 1) * task.cfg.max_image_size
+            #     if bbox_id % 2 == 0:
+            #         value /= sample['w_resize_ratios'][i]
+            #     else:
+            #         value /= sample['h_resize_ratios'][i]
+            #     target_seq[key] = [int(value.item())]
+            # print("gt_sentence: ", target_seq)
+            # print("\n")
             
     else:
         raise NotImplementedError
@@ -502,7 +508,7 @@ def merge_results(task, cfg, logger, score_cnt, score_sum, results):
 
         if cfg.distributed_training.distributed_world_size == 1 or dist.get_rank() == 0:
             os.makedirs(cfg.common_eval.results_path, exist_ok=True)
-            output_path = os.path.join(cfg.common_eval.results_path, "{}_0115_pretrain_noorder_complete_predict.json".format(cfg.dataset.gen_subset))
+            output_path = os.path.join(cfg.common_eval.results_path, "{}_0130_SGCls_tiny_350_on_training_set.json".format(cfg.dataset.gen_subset))
             gather_results = list(chain(*gather_results)) if gather_results is not None else results
             with open(output_path, 'w') as fw:
                 json.dump(gather_results, fw)
