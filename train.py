@@ -14,6 +14,9 @@ import math
 import os
 import sys
 from typing import Dict, Optional, Any, List, Tuple, Callable
+import pdb
+
+from torch.utils.tensorboard import SummaryWriter
 
 # We need to setup root logger before importing any fairseq libraries.
 logging.basicConfig(
@@ -298,17 +301,21 @@ def train(
     should_stop = False
     num_updates = trainer.get_num_updates()
     logger.info("Start iterating over samples")
+    
     for i, samples in enumerate(progress):
         with metrics.aggregate("train_inner"), torch.autograd.profiler.record_function(
             "train_step-%d" % i
         ):
-            log_output = trainer.train_step(samples)
+            log_output = trainer.train_step(samples, epoch_itr.epoch)
 
         if log_output is not None:  # not OOM, overflow, ...
             # log mid-epoch stats
             num_updates = trainer.get_num_updates()
             if num_updates % cfg.common.log_interval == 0:
                 stats = get_training_stats(metrics.get_smoothed_values("train_inner"))
+                # print("stats loss: ", stats['loss'])
+                # pdb.set_trace()
+                # writer.add_scalar('training loss', stats['loss'], epoch_itr.epoch * len(samples) + i)
                 progress.log(stats, tag="train_inner", step=num_updates)
 
                 # reset mid-epoch stats after each log interval

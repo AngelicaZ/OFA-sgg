@@ -321,8 +321,7 @@ class VGDatasetReader(Dataset):
         if flip_img:
             img = img.transpose(method=Image.FLIP_LEFT_RIGHT)
 
-        # print("required_len: ", self.required_len)
-        # pdb.set_trace()
+        
         target_seq, img, bbox_seq, w_resize_ratio, h_resize_ratio, region = self.target2seq(img, target, self.required_len, obj_order=False)
         # target_seq_raw = self.target2seq_raw(img, target, self.required_len)
         # target_mask = torch.zeros(len(target_seq_raw))
@@ -498,9 +497,9 @@ class VGDatasetReader(Dataset):
                     bbox_vals_normalize[n] = self.num_bins - 1
 
             # For PredCls,add obj labels
-            # obj_id = target.extra_fields['labels'][i]
-            # obj_name = self.ind_to_classes[obj_id]
-            # bbox_seq_i.append(obj_name)
+            obj_id = target.extra_fields['labels'][i]
+            obj_name = self.ind_to_classes[obj_id]
+            bbox_seq_i.append(obj_name)
 
             # For PredCls and SGCls, add bbox
             bbox_seq_i.append("<bin_{}>".format(str(bbox_vals_normalize[0])))
@@ -844,8 +843,11 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
 
     # to reduce the number of test image for debugging
     # if split == 'test':
-    #     for i in range(85000, len(data_split)):
-    #         data_split[i] = 0
+    # print("len(data_split): ", len(data_split))
+    # pdb.set_trace()
+    # len(data_split): 108073
+    # for i in range(25000, len(data_split)):
+    #     data_split[i] = 2
     
 
     split_mask = data_split == split_flag # (108073,)

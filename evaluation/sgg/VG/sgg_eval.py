@@ -1,3 +1,4 @@
+from ast import expr_context
 import logging
 import os
 import torch
@@ -129,6 +130,7 @@ class SGNoGraphConstraintRecall(SceneGraphEvaluation):
         '''
         # print("pred_rel_inds: ", pred_rel_inds)
         # print("obj id: ", obj_scores)
+        # pdb.set_trace()
         # # obj_scores_per_rel = np.ones((len(pred_rel_inds), 1))
         # # print("type pred_rel_inds: ", type(pred_rel_inds))
         # pdb.set_trace()
@@ -142,8 +144,12 @@ class SGNoGraphConstraintRecall(SceneGraphEvaluation):
         try:
             obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
         except:
-            obj_scores = np.append(obj_scores, 1)
+            for pred_rel_id_pair in pred_rel_inds:
+                for pred_rel_id in pred_rel_id_pair:
+                    while pred_rel_id >= len(obj_scores):
+                        obj_scores = np.append(obj_scores, 1)
             obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
+        
 
         try:
             nogc_overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,1:]

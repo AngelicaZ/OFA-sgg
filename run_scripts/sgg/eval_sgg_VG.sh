@@ -1,7 +1,7 @@
 
-export MASTER_PORT=8098
+export MASTER_PORT=8099
 # 8087, 4081, 3053, 3054, 3055
-export CUDA_VISIBLE_DEVICES=3,5,6,7
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 export GPUS_PER_NODE=4
 export TORCH_DISTRIBUTED_DETAIL=DEBUG
 export NCCL_P2P_LEVEL=NVL
@@ -17,19 +17,19 @@ data=${base_dir}/VG-SGG-with-attri.h5
 # image_file=${base_dir}/image_data.json
 
 checkpoint=checkpoint_best
-paras=VG_0130_SGCls_15_1e-4_ofa_tiny_350
+paras=VG_0305_PredCls_bboxiou_objnum_loss_15_1e-4_ofa_tiny_350
 path=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 result_path=../../results/sgg/VG
 # selected_cols=1,4,2
-split='train'
+split='test'
 
 log_dir=./sgg_logs_eval/VG
 mkdir -p $log_dir
 
-log_file=${log_dir}/${paras}"_"${checkpoint}"_on_training_set.log"
+log_file=${log_dir}/${paras}"_"${checkpoint}
 
 # while true; do
-echo "name: "${paras}"_"${checkpoint}"_on_training_set"
+echo "name: "${paras}"_"${checkpoint}
 python3 -m torch.distributed.launch  --nproc_per_node=${GPUS_PER_NODE} --master_port=${MASTER_PORT} ../../evaluate.py \
     ${data} \
     --path=${path} \

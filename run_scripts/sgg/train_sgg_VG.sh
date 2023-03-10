@@ -7,11 +7,11 @@ WORKER_CNT=1
 export MASTER_ADDR=127.0.0.1 # 162.129.251.54
 
 # The port for communication
-export MASTER_PORT=3056
+export MASTER_PORT=3058
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 export RANK=0 
 
-export CUDA_VISIBLE_DEVICES=3,5,6,7
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 export CUDA_LAUNCH_BLOCKING=1
 
 dataset_choose='VG'
@@ -77,11 +77,11 @@ for max_epoch in 15; do
     echo "lr "${lr}
     for patch_image_size in 512; do
       echo "arch "${arch}
-      echo "name: VG_0203_PredCls"
+      echo "name: VG_0305_PredCls_bboxiou_objnum_loss"
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_0203_PredCls_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_0203_PredCls_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_0305_PredCls_bboxiou_objnum_loss_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_0305_PredCls_bboxiou_objnum_loss_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \

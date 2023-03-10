@@ -5,6 +5,7 @@
 
 import math
 import pdb
+from turtle import pd
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -18,6 +19,8 @@ from fairseq.dataclass import FairseqDataclass
 from omegaconf import II
 from utils.eval_utils import decode_fn
 from data.mm_data.sgg_VG_dataset import VGDatasetReader
+from scipy.optimize import linear_sum_assignment
+from torchvision.ops import box_iou
 
 
 @dataclass
@@ -82,6 +85,45 @@ def kl_loss(p, q):
     q_loss = F.kl_div(q, torch.exp(p), reduction='sum')
     loss = (p_loss + q_loss) / 2
     return loss
+
+def bbox_iou(boxes_pred, boxes_gt):
+    num_pred = len(boxes_pred)
+    num_gt = len(boxes_gt)
+    iou_matrix = np.zeros((num_pred, num_gt))
+    
+    # Compute IoU matrix
+    for i in range(num_pred):
+        for j in range(num_gt):
+            intersection = compute_intersection(boxes_pred[i], boxes_gt[j])
+            union = compute_union(boxes_pred[i], boxes_gt[j], intersection)
+            iou_matrix[i][j] = intersection / union
+    
+    # Perform matching using Hungarian algorithm
+    row_ind, col_ind = linear_sum_assignment(-iou_matrix)
+    
+    # Compute total IoU for matched pairs
+    total_iou = 0
+    for i, j in zip(row_ind, col_ind):
+        total_iou += iou_matrix[i][j]
+    total_iou /= len(row_ind)
+    
+    return total_iou, iou_matrix
+    # total_iou, 
+    
+def compute_intersection(box1, box2):
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+    if x2 <= x1 or y2 <= y1:
+        return 0
+    else:
+        return (x2 - x1) * (y2 - y1)
+
+def compute_union(box1, box2, intersection):
+    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    return area1 + area2 - intersection
 
 
 def label_smoothed_nll_loss(
@@ -170,7 +212,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             self.constraint_start = int(constraint_start)
             self.constraint_end = int(constraint_end)
 
-    def forward(self, model, sample, update_num=0, reduce=True):
+    def forward(self, generator, model, sample, update_num=0, reduce=True):
         """Compute the loss for the given sample.
 
         Returns a tuple with three elements:
@@ -222,7 +264,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         '''
         # print("target shape just before input to model: ", sample["target"].shape)
         
-        loss, nll_loss, ntokens = self.compute_loss(model, net_output, sample, update_num, reduce=reduce)
+        loss, nll_loss, ntokens = self.compute_loss(generator, model, net_output, sample, update_num, reduce=reduce)
         sample_size = (
             sample["target"].size(0) if self.sentence_avg else ntokens
         )
@@ -267,14 +309,14 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             constraint_masks = constraint_masks.view(-1, constraint_masks.size(-1))
         return lprobs.view(-1, lprobs.size(-1)), lprobs, target.view(-1), target, constraint_masks
 
-    def compute_loss(self, model, net_output, sample, update_num, reduce=True):
+    def compute_loss(self, generator, model, net_output, sample, update_num, reduce=True):
         # sample['target']: [4, 14]
         lprobs, lprobs_raw, target, target_raw, constraint_masks = self.get_lprobs_and_target(model, net_output, sample)
         # target [56]
         if constraint_masks is not None:
             constraint_masks = constraint_masks[target != self.padding_idx]
         
-        # bbox_loss = self.compute_bbox_loss(generator, lprobs_raw, target_raw, sample)
+        bbox_loss, loss_obj_num = self.compute_bbox_loss(generator, lprobs_raw, target_raw, sample)
         # print("bbox_loss: ", bbox_loss)
         lprobs = lprobs[target != self.padding_idx]
         target = target[target != self.padding_idx] # [26]
@@ -295,9 +337,9 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             constraint_end=self.constraint_end
         )
         # print("loss: ", loss)
-        bbox_weight_l2 = 1.0 / 2000
+        bbox_weight_l2 = 30.0
         bbox_weight_l1 = 3.0
-        # loss += bbox_weight_l2 * bbox_loss
+        loss += bbox_weight_l2 * (10.0 * bbox_loss + 1.0 * loss_obj_num)
         # print("loss with bbox: ", loss)
         return loss, nll_loss, ntokens
     
@@ -330,6 +372,11 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
 
         # pdb.set_trace()
 
+        # lprobs_obj_num_total = 0
+        # target_obj_num_total = 0
+
+        bbox_iou_total = 0
+
 
         for i in range(len(indexes)):
 
@@ -341,8 +388,6 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             
             lprobs_i_decode = decode_fn(lprobs_i, self.task.tgt_dict, bpe, generator)
             target_i_decode = decode_fn(target_i, self.task.tgt_dict, bpe, generator)
-
-            
 
             lprobs_i_decode = lprobs_i_decode.split()
             target_i_decode = target_i_decode.split()
@@ -376,6 +421,77 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
                         # continue
                         print("Unexpected bbox from target: ", target_i_decode[k])
 
+            # print("lprobs_bbox_i: ", lprobs_bbox_i)
+            # print("target_bbox_i: ", target_bbox_i)
+
+            lprobs_bbox_in_list = []
+            target_bbox_in_list = []
+
+            if len(lprobs_bbox_i) < 4:
+                return 0, 100
+            else:
+                for j in range(len(lprobs_bbox_i) // 4):
+                    bbox_j = lprobs_bbox_i[4*j:4*j+4]
+                    lprobs_bbox_in_list.append(bbox_j)
+            
+            for k in range(len(target_bbox_i) // 4):
+                bbox_k = target_bbox_i[4*k:4*k+4]
+                target_bbox_in_list.append(bbox_k)
+
+            # pdb.set_trace()
+
+            bbox_iou_i, iou_matrix = bbox_iou(lprobs_bbox_in_list, target_bbox_in_list)
+            bbox_iou_total += bbox_iou_i
+
+            # Compute the set loss term
+            # num_pred = len(lprobs_bbox_in_list)
+            # num_target = len(target_bbox_in_list)
+            # cost = torch.zeros((num_pred, num_target))  # Initialize the cost matrix
+            # if num_pred > 0 and num_target > 0:
+            #     iou = box_iou(torch.Tensor(lprobs_bbox_in_list), torch.Tensor(target_bbox_in_list))
+            #     cost = -iou  # Negative IoU represents the matching cost
+
+            # # Solve the optimal matching using the Hungarian algorithm
+            # row_ind, col_ind = torch.tensor([], dtype=torch.int64), torch.tensor([], dtype=torch.int64)
+            # if num_pred > 0 and num_target > 0:
+            #     # try:
+            #     row_ind, col_ind = torch.linalg.solve(torch.Tensor(cost), torch.zeros(num_pred, dtype=torch.float32))
+            #     row_ind, col_ind = row_ind.round().to(torch.int64), col_ind.round().to(torch.int64)
+            #     # except:
+            #     #     print("cost type: ", type(cost))
+            #     #     print("second type: ", type(torch.zeros(num_pred, dtype=torch.float32)))
+            #     #     print("num pred type: ", num_pred)
+            #     #     # pdb.set_trace()
+            
+            # # Compute the set loss term as the number of false positives and false negatives
+            # num_false_pos = (row_ind == -1).sum()
+            # num_false_neg = (col_ind == -1).sum()
+            # loss_obj_num = num_false_pos + num_false_neg
+
+            # Compute the pairwise box similarity scores
+            similarity = torch.cdist(torch.Tensor(lprobs_bbox_in_list), torch.Tensor(target_bbox_in_list), p=1)
+
+            # Convert the similarity scores to a cost matrix
+            cost = similarity.numpy()
+
+            # Use the Hungarian algorithm to find the minimum-cost matching
+            row_ind, col_ind = linear_sum_assignment(cost)
+
+            # Extract the matched boxes
+            matched_indices = np.stack([row_ind, col_ind], axis=1)
+            matched_boxes = torch.zeros(len(lprobs_bbox_in_list), 4)
+            ground_truth_boxes = torch.Tensor(target_bbox_in_list)
+            matched_boxes[row_ind] = ground_truth_boxes[col_ind]
+
+            # Compute the foreground/background binary mask
+            fg_mask = torch.zeros(len(lprobs_bbox_in_list), dtype=torch.bool)
+            fg_mask[row_ind] = True
+
+            # Compute the matching cost
+            matching_cost = cost[row_ind, col_ind].sum()
+            
+
+            # Calculate MSE loss
             if len(lprobs_bbox_i) < len(target_bbox_i):
                 for l in range(len(target_bbox_i)-len(lprobs_bbox_i)):
                     lprobs_bbox_i.append(0)
@@ -395,8 +511,12 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             # loss = F.l1_loss(lprobs_bbox_i, target_bbox_i)
             loss = bbox_loss_fn(lprobs_bbox_i, target_bbox_i)
             loss_total += loss
+
+        average_loss = loss_total / len(indexes)
+        average_iou = bbox_iou_total / len(indexes)
         
-        return loss_total / len(indexes)
+        return (1 - average_iou), matching_cost
+
 
     def compute_accuracy(self, model, net_output, sample):
         lprobs, lprobs_raw, target, target_raw, constraint_masks = self.get_lprobs_and_target(model, net_output, sample)

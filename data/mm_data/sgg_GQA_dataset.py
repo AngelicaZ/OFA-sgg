@@ -16,6 +16,7 @@ from data import data_utils
 import utils.transforms as T
 from torchvision import transforms
 from PIL import Image, ImageFile
+import random
 
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -114,44 +115,64 @@ class SggGQADataset(OFADataset):
 
     def __getitem__(self, idx):
         self.count += 1
-        tgt_seq, imageid, src_text = self.dataset[idx]
-        # src_features = torch.Tensor(src_features)
-        # tgt_seq_ids = torch.Tensor(tgt_seq_ids)
+        img, tgt_seq, imageid, src_text, index, w_resize_ratio, h_resize_ratio, region = self.dataset[idx]
+        
+        patch_image = img
 
-        img_path = self.img_dir + imageid + ".jpg"
-        img = cv2.imread(img_path)
-        im_pil = Image.fromarray(img)
-        patch_image = self.patch_resize_transform(im_pil)
-        # img_resized = cv2.resize(img, (384, 512))
-        # img = torch.Tensor(img_resized)
-
-        '''tgt seq encoding approach 1'''
-        # target seq len: [192]
-        tgt_caption = '&&'.join(tgt_seq)
-        tgt_item = self.encode_text(" {}".format(tgt_caption))  # NOTICE: removed space (recovered)
-        # target raw original len: [406]
-
-        '''tgt seq encoding approach 2'''
-        # tgt_seq = ' '.join(tgt_seq)
-        # tgt_caption = self.pre_caption(tgt_seq)
-        # tgt_item = self.encode_text(tgt_caption)
-
+        tgt_caption = ' '.join(tgt_seq)
         # print("tgt_caption: ", tgt_caption)
+        tgt_item = self.encode_text(tgt_caption, use_bpe=False)
         # print("tgt_item: ", tgt_item)
         
         patch_mask = torch.tensor([True])
 
+        # print("src_text: ", src_text)
         src_caption = self.pre_caption(src_text)
-        src_item = self.encode_text(src_caption)
         # print("src_caption: ", src_caption)
+        src_item = self.encode_text(self.prompt.format(src_caption))
+        src_item_list = src_item.tolist()
+        if len(src_item_list) > 1022:
+            src_item_list = src_item_list[:1022]
+        src_item = torch.Tensor(src_item_list).long()
         # print("src_item: ", src_item)
-        # pdb.set_trace()
+        # print("src item shape: ", src_item.shape)
 
         src_item = torch.cat([self.bos_item, src_item, self.eos_item])
         target_item = torch.cat([tgt_item, self.eos_item])
         prev_output_item = torch.cat([self.bos_item, tgt_item])
 
-        # print("target original shape: ", target_item.shape)
+        # img_path = self.img_dir + imageid + ".jpg"
+        # img = cv2.imread(img_path)
+        # im_pil = Image.fromarray(img)
+        # patch_image = self.patch_resize_transform(im_pil)
+
+        # '''tgt seq encoding approach 1'''
+        # # target seq len: [192]
+        # tgt_caption = '&&'.join(tgt_seq)
+        # tgt_item = self.encode_text(" {}".format(tgt_caption))  # NOTICE: removed space (recovered)
+        # # target raw original len: [406]
+
+        # '''tgt seq encoding approach 2'''
+        # # tgt_seq = ' '.join(tgt_seq)
+        # # tgt_caption = self.pre_caption(tgt_seq)
+        # # tgt_item = self.encode_text(tgt_caption)
+
+        # # print("tgt_caption: ", tgt_caption)
+        # # print("tgt_item: ", tgt_item)
+        
+        # patch_mask = torch.tensor([True])
+
+        # src_caption = self.pre_caption(src_text)
+        # src_item = self.encode_text(src_caption)
+        # # print("src_caption: ", src_caption)
+        # # print("src_item: ", src_item)
+        # # pdb.set_trace()
+
+        # src_item = torch.cat([self.bos_item, src_item, self.eos_item])
+        # target_item = torch.cat([tgt_item, self.eos_item])
+        # prev_output_item = torch.cat([self.bos_item, tgt_item])
+
+        # # print("target original shape: ", target_item.shape)
         
         
         example = {
@@ -218,16 +239,26 @@ class GQADatasetReader(Dataset):
 
         # generating imageid
         keys = list(self.scenegraphs_json.keys())
-            
         imageid = keys[idx]
+
+        # generating image
+        img = Image.open(self.filenames[idx]).convert("RGB")
+        if img.size[0] != self.img_info[idx]['width'] or img.size[1] != self.img_info[idx]['height']:
+            print('='*20, ' ERROR index ', str(idx), ' ', str(img.size), ' ', str(self.img_info[idx]['width']), ' ', str(self.img_info[idx]['height']), ' ', '='*20)
+
+        flip_img = (random.random() > 0.5) and self.flip_aug and (self.split == 'train')
+
+        if flip_img:
+            img = img.transpose(method=Image.FLIP_LEFT_RIGHT)
         
         required_len = self.tgt_seq_len
-        tgt_seq, scenegraph = self.GQA_with_scene_graph.SceneGraph2SeqV2(imageid, self.num_bins, required_len)
+        tgt_seq, patch_image, bbox_seq, w_resize_ratio, h_resize_ratio, region, scenegraph = self.GQA_with_scene_graph.SceneGraph2SeqV2(imageid, image, self.num_bins, required_len)
+        # target_seq, img, bbox_seq, w_resize_ratio, h_resize_ratio, region
         
-        src_text = 'Parse image.'
+        src_text = ' '.join(bbox_seq)
         
 
-        return tgt_seq, imageid, src_text
+        return img, tgt_seq, imageid, src_text, idx, w_resize_ratio, h_resize_ratio, region
 
 
     def __len__(self):

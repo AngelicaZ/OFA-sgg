@@ -14,6 +14,7 @@ import time
 from argparse import Namespace
 from itertools import chain
 from typing import Any, Dict, List
+from torch.utils.tensorboard import SummaryWriter
 
 import torch
 from fairseq import models, optim, utils
@@ -727,7 +728,7 @@ class Trainer(object):
         self._dummy_batch = batch
 
     @metrics.aggregate("train")
-    def train_step(self, samples, raise_oom=False):
+    def train_step(self, samples, epoch, raise_oom=False):
         """Do forward, backward and parameter update."""
         self._set_seed()
         self.model.train()
@@ -735,6 +736,10 @@ class Trainer(object):
         self.zero_grad()
 
         metrics.log_start_time("train_wall", priority=800, round=0)
+
+        # set Tensorboard to log training loss
+        writer_log_dir = 'tensorboard/VG/0302_PredCls'
+        # writer = SummaryWriter(log_dir=writer_log_dir, max_queue=4, comment='0302_PredCls')
 
         # If EMA is enabled through store_ema=True
         # and task.uses_ema is True, pass the EMA model as a keyword
@@ -780,6 +785,7 @@ class Trainer(object):
                         ignore_grad=is_dummy_batch,
                         **extra_kwargs,
                     )
+                    # writer.add_scalar('training loss', loss, epoch * len(samples) + i)
                     del loss
 
                 logging_outputs.append(logging_output)

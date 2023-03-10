@@ -115,9 +115,9 @@ def do_vg_evaluation(
             prepare_pred = prepare_prediction(prediction, dataset, pred_mode='xywh')
             box, label, score = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score # box is xywh
 
-            # print("prediction sentence: ", prediction)
-            # print("predicted labels: ", label)
-            # print("predicted boxes: ", box)
+            print("prediction sentence: ", prediction)
+            print("predicted labels: ", label)
+            print("predicted boxes: ", box)
             
             # ground truth for debug
             img = Image.open(dataset.filenames[image_idx]).convert("RGB")
@@ -128,11 +128,11 @@ def do_vg_evaluation(
             for i in range(len(box_gt_debug)):
                 box_gt_debug[i][2] = max(box_gt_debug[i][2] - box_gt_debug[i][0], 0) # convert to xywh
                 box_gt_debug[i][3] = max(box_gt_debug[i][3] - box_gt_debug[i][1], 0)
-            # print("sentences_gt: ", seq)
-            # print("box_gt: ", box_gt_debug)
-            # print("label_gt: ", label_gt_debug)
+            print("sentences_gt: ", seq)
+            print("box_gt: ", box_gt_debug)
+            print("label_gt: ", label_gt_debug)
 
-            # pdb.set_trace()
+            pdb.set_trace()
 
             # for predcls, we set label and score to groundtruth
             # if mode == 'predcls':
@@ -441,27 +441,6 @@ class prepare_prediction():
             try:
                 index0 = obj_names.index(obj0_name)
                 index1 = obj_names.index(obj1_name)
-            
-                # if (index1 == 4) and (index0 == 2):
-                #     print("index0: ", index0)
-                #     print("index1: ", index1)
-                #     print("self.box.shape: ", self.box.shape)
-                #     pdb.set_trace()
-
-                # if index0 >= self.box.shape[0]:
-                #     print("index0: ", index0)
-                #     print("self.box.shape: ", self.box.shape)
-                #     pdb.set_trace()
-                #     index0 = self.box.shape[0] - 1
-                # if index1 >= self.box.shape[0]:
-                #     print("index1: ", index1)
-                #     print("self.box.shape: ", self.box.shape)
-                #     pdb.set_trace()
-                #     index1 = self.box.shape[0] - 1
-                # if index1 == 4 and self.box.shape[0] == 4:
-                #     index1 = 3
-                #     print("self.box.shape[0] normal: ", self.box.shape[0])
-                #     pdb.set_trace()
                 r_index = self.dataset.predicate_to_ind[r_raw]
                 self.relation.append([index0, index1, r_index])
             except:
@@ -470,19 +449,6 @@ class prepare_prediction():
                         obj1_name = obj1_name[:len(obj1_name)/2]
                         index0 = obj_names.index(obj0_name)
                         index1 = obj_names.index(obj1_name)
-                        # if (index1 == 4) and (index0 == 2):
-                        #     print("index0 in double: ", index0)
-                        #     print("index1 in double: ", index1)
-                        #     print("self.box.shape in double: ", self.box.shape)
-                        #     pdb.set_trace()
-                        # if index0 >= self.box.shape[0]:
-                        #     index0 = self.box.shape[0] - 1
-                        # if index1 >= self.box.shape[0]:
-                        #     index1 = self.box.shape[0] - 1
-                        # if index1 == 4 and self.box.shape[0] == 4:
-                        #     index1 = 3
-                        #     print("self.box.shape[0] double name: ", self.box.shape[0])
-                        #     pdb.set_trace()
                         r_index = self.dataset.predicate_to_ind[r_raw]
                         self.relation.append([index0, index1, r_index])
                 except:

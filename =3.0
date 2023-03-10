@@ -1,0 +1,71 @@
+Collecting beautifulsoup4
+  Downloading beautifulsoup4-4.11.2-py3-none-any.whl (129 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 129.4/129.4 kB 8.7 MB/s eta 0:00:00
+Collecting bleach
+  Downloading bleach-6.0.0-py3-none-any.whl (162 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 162.5/162.5 kB 24.9 MB/s eta 0:00:00
+Collecting defusedxml
+  Using cached defusedxml-0.7.1-py2.py3-none-any.whl (25 kB)
+Collecting jupyter-core
+  Downloading jupyter_core-4.12.0-py3-none-any.whl (89 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 89.9/89.9 kB 34.3 MB/s eta 0:00:00
+Collecting markupsafe
+  Downloading MarkupSafe-2.1.2-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (25 kB)
+Collecting mistune
+  Downloading mistune-2.0.5-py2.py3-none-any.whl (24 kB)
+Collecting nbclient
+  Downloading nbclient-0.7.2-py3-none-any.whl (71 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 72.0/72.0 kB 24.7 MB/s eta 0:00:00
+Collecting nbformat
+  Downloading nbformat-5.7.3-py3-none-any.whl (78 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.1/78.1 kB 20.5 MB/s eta 0:00:00
+Collecting packaging
+  Downloading packaging-23.0-py3-none-any.whl (42 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.7/42.7 kB 11.7 MB/s eta 0:00:00
+Collecting pandocfilters
+  Using cached pandocfilters-1.5.0-py2.py3-none-any.whl (8.7 kB)
+Collecting pygments
+  Downloading Pygments-2.14.0-py3-none-any.whl (1.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 51.6 MB/s eta 0:00:00
+Collecting tinycss2
+  Downloading tinycss2-1.2.1-py3-none-any.whl (21 kB)
+Collecting traitlets
+  Downloading traitlets-5.9.0-py3-none-any.whl (117 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 117.4/117.4 kB 31.1 MB/s eta 0:00:00
+Collecting attrs
+  Downloading attrs-22.2.0-py3-none-any.whl (60 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.0/60.0 kB 15.2 MB/s eta 0:00:00
+Collecting pyrsistent
+  Downloading pyrsistent-0.19.3-py3-none-any.whl (57 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.5/57.5 kB 14.4 MB/s eta 0:00:00
+Collecting websocket-client
+  Downloading websocket_client-1.5.1-py3-none-any.whl (55 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 55.9/55.9 kB 14.4 MB/s eta 0:00:00
+Requirement already satisfied: jinja2 in /home/chenyu/.local/lib/python3.7/site-packages (2.11.3)
+Collecting soupsieve>1.2
+  Downloading soupsieve-2.4-py3-none-any.whl (37 kB)
+Requirement already satisfied: six>=1.9.0 in /home/chenyu/anaconda3/envs/OFA_2/lib/python3.7/site-packages (from bleach) (1.16.0)
+Collecting webencodings
+  Using cached webencodings-0.5.1-py2.py3-none-any.whl (11 kB)
+Collecting jupyter-client>=6.1.12
+  Downloading jupyter_client-7.4.9-py3-none-any.whl (133 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 133.5/133.5 kB 28.2 MB/s eta 0:00:00
+Requirement already satisfied: importlib-metadata>=3.6 in /home/chenyu/anaconda3/envs/OFA_2/lib/python3.7/site-packages (from nbformat) (6.0.0)
+Requirement already satisfied: jsonschema>=2.6 in /home/chenyu/.local/lib/python3.7/site-packages (from nbformat) (3.2.0)
+Collecting fastjsonschema
+  Downloading fastjsonschema-2.16.3-py3-none-any.whl (23 kB)
+Requirement already satisfied: typing-extensions>=3.6.4 in /home/chenyu/.local/lib/python3.7/site-packages (from importlib-metadata>=3.6->nbformat) (3.10.0.0)
+Requirement already satisfied: zipp>=0.5 in /home/chenyu/anaconda3/envs/OFA_2/lib/python3.7/site-packages (from importlib-metadata>=3.6->nbformat) (3.15.0)
+Requirement already satisfied: setuptools in /home/chenyu/anaconda3/envs/OFA_2/lib/python3.7/site-packages (from jsonschema>=2.6->nbformat) (63.4.1)
+Collecting tornado>=6.2
+  Using cached tornado-6.2-cp37-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (423 kB)
+Collecting nest-asyncio>=1.5.4
+  Using cached nest_asyncio-1.5.6-py3-none-any.whl (5.2 kB)
+Collecting entrypoints
+  Using cached entrypoints-0.4-py3-none-any.whl (5.3 kB)
+Collecting pyzmq>=23.0
+  Downloading pyzmq-25.0.0-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.whl (1.0 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 66.7 MB/s eta 0:00:00
+Requirement already satisfied: python-dateutil>=2.8.2 in /home/chenyu/anaconda3/envs/OFA_2/lib/python3.7/site-packages (from jupyter-client>=6.1.12->nbclient) (2.8.2)
+Installing collected packages: webencodings, mistune, fastjsonschema, websocket-client, traitlets, tornado, tinycss2, soupsieve, pyzmq, pyrsistent, pygments, pandocfilters, packaging, nest-asyncio, markupsafe, entrypoints, defusedxml, bleach, attrs, jupyter-core, beautifulsoup4, nbformat, jupyter-client, nbclient
+Successfully installed attrs-22.2.0 beautifulsoup4-4.11.2 bleach-6.0.0 defusedxml-0.7.1 entrypoints-0.4 fastjsonschema-2.16.3 jupyter-client-7.4.9 jupyter-core-4.12.0 markupsafe-2.1.2 mistune-2.0.5 nbclient-0.7.2 nbformat-5.7.3 nest-asyncio-1.5.6 packaging-23.0 pandocfilters-1.5.0 pygments-2.14.0 pyrsistent-0.19.3 pyzmq-25.0.0 soupsieve-2.4 tinycss2-1.2.1 tornado-6.2 traitlets-5.9.0 webencodings-0.5.1 websocket-client-1.5.1
