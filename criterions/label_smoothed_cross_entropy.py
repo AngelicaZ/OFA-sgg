@@ -89,6 +89,9 @@ def kl_loss(p, q):
 def bbox_iou(boxes_pred, boxes_gt):
     num_pred = len(boxes_pred)
     num_gt = len(boxes_gt)
+    # print("num_pred: ", num_pred)
+    # print("num_gt: ", num_gt)
+    # print("\n")
     iou_matrix = np.zeros((num_pred, num_gt))
     
     # Compute IoU matrix
@@ -96,7 +99,10 @@ def bbox_iou(boxes_pred, boxes_gt):
         for j in range(num_gt):
             intersection = compute_intersection(boxes_pred[i], boxes_gt[j])
             union = compute_union(boxes_pred[i], boxes_gt[j], intersection)
-            iou_matrix[i][j] = intersection / union
+            if union == 0:
+                iou_matrix[i][j] = 0
+            else:
+                iou_matrix[i][j] = intersection / union
     
     # Perform matching using Hungarian algorithm
     row_ind, col_ind = linear_sum_assignment(-iou_matrix)
@@ -244,7 +250,7 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         if self.use_rdrop:
             construct_rdrop_sample(sample)
 
-        net_output = model(**sample["net_input"]) 
+        net_output = model(**sample["net_input"])  # data go through model
         '''
         sample["net_input"]: dict, 
             keys: ['src_tokens', 'src_lengths', 'patch_images', 'patch_masks', 'prev_output_tokens']
@@ -336,10 +342,12 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             constraint_start=self.constraint_start,
             constraint_end=self.constraint_end
         )
-        # print("loss: ", loss)
+        # print("bbox loss: ", bbox_loss)
+        # pdb.set_trace()
         bbox_weight_l2 = 30.0
         bbox_weight_l1 = 3.0
-        loss += bbox_weight_l2 * (10.0 * bbox_loss + 1.0 * loss_obj_num)
+        # loss += bbox_weight_l2 * (10.0 * bbox_loss + 1.0 * loss_obj_num)
+        loss += bbox_weight_l2 * (1.0 * loss_obj_num)
         # print("loss with bbox: ", loss)
         return loss, nll_loss, ntokens
     
@@ -367,8 +375,9 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         bbox_loss_fn = nn.MSELoss()
         loss_total = 0
 
-        # print("lprobs shape: ", lprobs.shape)
-        # print("target shape: ", target.shape)
+        # print("lprobs: ", lprobs)
+        # print("target: ", target)
+        # pdb.set_trace()
 
         # pdb.set_trace()
 
@@ -394,10 +403,11 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
 
             # print("lprobs_i_decode: ", lprobs_i_decode)
             # print("target_i_decode: ", target_i_decode)
+            # pdb.set_trace()
 
             
-            if len(lprobs_i_decode) == 0 or len(target_i_decode) == 0:
-                continue
+            # if len(lprobs_i_decode) == 0 or len(target_i_decode) == 0:
+            #     continue
 
             lprobs_bbox_i = []
             target_bbox_i = []
@@ -439,6 +449,8 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
                 target_bbox_in_list.append(bbox_k)
 
             # pdb.set_trace()
+
+
 
             bbox_iou_i, iou_matrix = bbox_iou(lprobs_bbox_in_list, target_bbox_in_list)
             bbox_iou_total += bbox_iou_i
@@ -514,6 +526,8 @@ class AdjustLabelSmoothedCrossEntropyCriterion(FairseqCriterion):
 
         average_loss = loss_total / len(indexes)
         average_iou = bbox_iou_total / len(indexes)
+        # print("average_iou: ", average_iou)
+        # pdb.set_trace()
         
         return (1 - average_iou), matching_cost
 

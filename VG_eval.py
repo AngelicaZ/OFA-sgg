@@ -17,7 +17,7 @@ def evaluate_on_VG_seq(predictions, output_folder):
     dict_file = f'{base_dir}/VG-SGG-dicts-with-attri.json'
     image_file = f'{base_dir}/image_data.json'
     tgt_seq_len = 350
-    split = 'train'
+    split = 'test'
     # print("split: ", split)
 
     dataset = VGDatasetReader(
@@ -51,6 +51,6 @@ if __name__ == "__main__":
     #     evaluate_on_VG_seq(sys.argv[1], sys.argv[2])
     # else:
     #     raise NotImplementedError
-    predictions = load_json('results/sgg/VG/train_0305_PredCls_train_small_dataset_tiny_350_on_training_set.json')
+    predictions = load_json('results/sgg/VG/train_0401_PredCls_overfit_tiny_350.json')
     output_folder = 'results/sgg/VG/recall_evals/'
     evaluate_on_VG_seq(predictions, output_folder)

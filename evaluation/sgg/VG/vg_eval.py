@@ -48,6 +48,7 @@ def do_vg_evaluation(
 
     groundtruths = dict()
     predictions = dict()
+    gt_short = dict()
     for pred in predictions_raw:
         if type(pred) != dict:
             continue
@@ -64,6 +65,10 @@ def do_vg_evaluation(
             predictions[image_idx] = prediction
 
             groundtruths[image_idx] = dataset.get_groundtruth(image_idx, evaluation=True)
+
+            # img = Image.open(dataset.filenames[image_idx]).convert("RGB")
+            # gt_debug = groundtruths[image_idx]
+            # gt_short[image_idx], obj_labels, rel_labels = dataset.target2seq_raw(img, gt_debug, required_len=dataset.required_len, obj_order=False, add_bbox=True)
             
             # groundtruths.append(gt)
 
@@ -123,7 +128,7 @@ def do_vg_evaluation(
             img = Image.open(dataset.filenames[image_idx]).convert("RGB")
             gt_debug = groundtruths[image_idx]
             seq, obj_labels, rel_labels = dataset.target2seq_raw(img, gt_debug, required_len=dataset.required_len, obj_order=False, add_bbox=True)
-            label_gt_debug = gt_debug.get_field('labels').tolist() # integer
+            label_gt_debug = gt_debug.get_field('labels') # integer
             box_gt_debug = gt_debug.bbox.tolist() # xyxy
             for i in range(len(box_gt_debug)):
                 box_gt_debug[i][2] = max(box_gt_debug[i][2] - box_gt_debug[i][0], 0) # convert to xywh
@@ -132,23 +137,45 @@ def do_vg_evaluation(
             print("box_gt: ", box_gt_debug)
             print("label_gt: ", label_gt_debug)
 
+            # TODO: Extract bbox and obj from short sequence
+
+
+
             pdb.set_trace()
 
             # for predcls, we set label and score to groundtruth
-            # if mode == 'predcls':
-            #     label = prediction.get_field('labels').detach().cpu().numpy()
-            #     score = np.ones(label.shape[0])
-            #     assert len(label) == len(box)
+            if mode == 'predcls':
+                label = label_gt_debug.detach().cpu().numpy()
+                score = np.ones(label.shape[0])
+                box_gt = np.asarray(box_gt_debug)
+                if label.shape[0] > box.shape[0]:
+                    box_origin = box.copy()
+                    m = len(box)
+                    box = np.concatenate((box, box_gt[m:, :]), 0)
             image_idx = np.asarray([image_idx]*len(box))
+            
             # score_gt_debug = np.asarray([1]*len(box))
-            cocolike_predictions.append(
-                np.column_stack((image_idx, box, score, label))
-                )
+            try:
+                cocolike_predictions.append(
+                    np.column_stack((image_idx, box, score, label))
+                    )
+            except:
+                continue
+                print("shape box origin: ", box_origin.shape)
+                print("m: ", m)
+                print("shape gt box: ", box_gt.shape)
+                print("shape image idx: ", image_idx.shape)
+                print("shape box: ", box.shape)
+                print("shape score: ", score.shape)
+                print("shape label: ", label.shape)
+                # pdb.set_trace()
             # logger.info(cocolike_predictions)
         cocolike_predictions = np.concatenate(cocolike_predictions, 0)
         # evaluate via coco API
         res = fauxcoco.loadRes(cocolike_predictions)
-        coco_eval = COCOeval(fauxcoco, res, 'bbox')
+        # print("fauxcoco shape: ", fauxcoco.shape)
+        # pdb.set_trace()
+        coco_eval = COCOeval(fauxcoco, res, 'bbox') #  E = CocoEval(cocoGt,cocoDt); # initialize CocoEval object
         # imgIds = fauxcoco.getImgIds()
         # print("imgIds: ", imgIds)
         # pdb.set_trace()
@@ -524,6 +551,8 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
 
     local_container['gt_boxes'] = groundtruth.convert('xyxy').bbox.detach().cpu().numpy()                   # (#gt_objs, 4)
     local_container['gt_classes'] = groundtruth.get_field('labels').long().detach().cpu().numpy()           # (#gt_objs, )
+    # print("gt rel: ", local_container['gt_rels'])
+    # print("gt label: ", local_container['gt_classes'])
 
     # ground truth for debug
     # relation = groundtruth.get_field('relation_tuple').long().detach().cpu().numpy()
@@ -561,6 +590,11 @@ def evaluate_relation_of_one_image(groundtruth, prediction, global_container, ev
     local_container['pred_boxes'] = box
     local_container['pred_classes'] = label
     local_container['obj_scores'] = score
+
+    # print("pred rel: ", relation)
+    # print("pred label: ", local_container['pred_classes'])
+
+    # pdb.set_trace()
 
     # to calculate accuracy, only consider those gt pairs
     # This metric is used by "Graphical Contrastive Losses for Scene Graph Parsing" 

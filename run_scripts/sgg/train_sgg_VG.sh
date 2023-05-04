@@ -23,6 +23,9 @@ data=${base_dir}/VG-SGG-with-attri.h5
 dict_file=${base_dir}/VG-SGG-dicts-with-attri.json
 image_file=${base_dir}/image_data.json
 
+# checkpoint=checkpoint_best
+# paras=VG_0319_PredCls_overfit_600_1e-4_ofa_tiny_350
+# restore_file=../../run_scripts/sgg/sgg_checkpoints/VG/${paras}/${checkpoint}.pt
 restore_file=../../checkpoints/ofa_tiny.pt
 
 log_dir=./sgg_logs/VG
@@ -71,17 +74,17 @@ tgt_seq_len=350
 # --lr-scheduler=polynomial_decay \
 # --total-num-update=${total_num_update} \
 
-for max_epoch in 15; do
+for max_epoch in 300; do
   echo "max_epoch "${max_epoch}
   for lr in 1e-4; do
     echo "lr "${lr}
     for patch_image_size in 512; do
       echo "arch "${arch}
-      echo "name: VG_0305_PredCls_bboxiou_objnum_loss"
+      echo "name: VG_0401_PredCls_overfit_objnum"
       echo "target_seq_len "${tgt_seq_len}
 
-      log_file=${log_dir}/"VG_0305_PredCls_bboxiou_objnum_loss_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
-      save_path=${save_dir}/"VG_0305_PredCls_bboxiou_objnum_loss_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
+      log_file=${log_dir}/"VG_0401_PredCls_overfit_objnum_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}".log"
+      save_path=${save_dir}/"VG_0401_PredCls_overfit_objnum_"${max_epoch}"_"${lr}"_"${arch}"_"${tgt_seq_len}
       mkdir -p $save_path
 
       python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
