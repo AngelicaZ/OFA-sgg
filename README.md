@@ -1,5 +1,7 @@
 **OFA for scene graph generation (SGG)**
 
+The model is based on OFA(https://github.com/OFA-Sys/OFA), which is a unified multimodal pretrained Transformer model that unifies modalities.
+
 <br></br>
 
 ## Dataset preparation
@@ -18,4 +20,27 @@ sh train_sgg_VG.sh
 ```
 
 To test the SGG task for GQA or VG dataset, run `sh eval_sgg_GQA.sh` or `eval_sgg_VG.sh`
+
+## Model Structure
+### Task Overview
+![task_overview](pictures/task_overview.pdf)
+
+### Scene Graph Generation
+![SGG](pictures/SGG.pdf)
+
+
+## Experiments and Results
+### SGdet
+
+
+### PredCls
+
+### Overfit
+
+### 
+
+
+## Visualization
+
+
 
