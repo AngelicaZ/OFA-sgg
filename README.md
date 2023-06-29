@@ -8,17 +8,17 @@ involves representing the scene graph as a sequence of objects, bounding boxes a
 
 ## Dataset Preparation
 ### GQA
-Download the GQA dataset: train_sceneGraphs.json and val_sceneGraphs.json
-attrlabel_glove_taxo.npy, sgg_features.h5, sgg_info.json, gqa_vocab_taxo.json, new_vocab_0822.json
+Download the GQA dataset: train_sceneGraphs.json and val_sceneGraphs.json  
+attrlabel_glove_taxo.npy, sgg_features.h5, sgg_info.json, gqa_vocab_taxo.json, new_vocab_0822.json  
 
 ### VG
-Download the VG dataset: VG-SGG-with-attri.h5, VG-SGG-dicts-with-attri.json, image_data.json
+Download the VG dataset: VG-SGG-with-attri.h5, VG-SGG-dicts-with-attri.json, image_data.json  
 Download the [VG dataset h5 file](https://1drv.ms/u/s!AmRLLNf6bzcir8xf9oC3eNWlVMTRDw?e=63t7Ed)
 
 <br></br>
 
 ## Train and Test
-Please modify the path of dataset in the sh files.
+Please modify the paths of datasets in the sh files.
 
 To train the SGG task for GQA dataset, run 
 ```
@@ -67,12 +67,12 @@ Test on 0203_PredCls
 
 
 ## Visualization
-Preciction: ['cat', [0, 62, 498, 242], 'is', 'on', 'bed', [0, 0, 498, 373], ',', 'has', 'ear', [417, 96, 52, 60], ',earing', 'pant', [0, 172, 230, 141], ',<bin_0><bin_0><bin_996>', '.']
-Groundtruth: ['cat ', [9], [58], [483], [305], ' is ', 'in ', 'chair ', [47], [274], [203], [368], ' . ']
+Preciction: ['cat', [0, 62, 498, 242], 'is', 'on', 'bed', [0, 0, 498, 373], ',', 'has', 'ear', [417, 96, 52, 60], ',earing', 'pant', [0, 172, 230, 141], ',<bin_0><bin_0><bin_996>', '.']  
+Groundtruth: ['cat ', [9], [58], [483], [305], ' is ', 'in ', 'chair ', [47], [274], [203], [368], ' . ']  
 ![visualization1](pictures/visualization1.png)
 
-Preciction: ['man', [102, 36, 86, 117], 'is', 'wearing', 'jean', [138, 80, 33, 63], ',', 'on', 'skateboard', [129, 135, 63, 24], '.']
-Groundtruth: ['man ', [102], [36], [188], [153], ' is ', 'has ', 'leg ', [159], [78], [188], [144], ' , ', 'wears ', 'pant ', [138], [75], [188], [144], ' , ', 'riding ', 'skateboard ', [129], [135], [192], [160], ' . ', 'man ', [104], [37], [191], [147], ' is ', 'has ', 'leg ', [138], [80], [171], [144], ' . ']
+Preciction: ['man', [102, 36, 86, 117], 'is', 'wearing', 'jean', [138, 80, 33, 63], ',', 'on', 'skateboard', [129, 135, 63, 24], '.']  
+Groundtruth: ['man ', [102], [36], [188], [153], ' is ', 'has ', 'leg ', [159], [78], [188], [144], ' , ', 'wears ', 'pant ', [138], [75], [188], [144], ' , ', 'riding ', 'skateboard ', [129], [135], [192], [160], ' . ', 'man ', [104], [37], [191], [147], ' is ', 'has ', 'leg ', [138], [80], [171], [144], ' . ']  
 ![visualization2](pictures/visualization2.png)
 
 
