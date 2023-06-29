@@ -34,22 +34,24 @@ To test the SGG task for GQA or VG dataset, run `sh eval_sgg_GQA.sh` or `eval_sg
 
 ## Model Structure
 ### Task Overview
-![task_overview](pictures/task_overview.pdf)
+![task_overview](pictures/task_overview_png.png)
 
 ### Scene Graph Generation
-![SGG](pictures/SGG.pdf)
+![SGG](pictures/sgg_png.png)
 
 
 ## Experiments and Results
 ### SGdet
-| Models | mAp | R@20 | R@50 | R@100 | ng-R@20 | ng-R@50 |ng-R@100 | zR@20 | zR@50 | zR@100 | mR@20 | mR@50 | mR@100 |
-| VCTree | -- | 24.53 | 31.93 | 36.21 | 26.14 | 35.73 | 42.34 | 0.1 | 0.31 | 0.69 | 5.38 | 7.44 | 8.66 |
-| Ofa_tiny | 1.16 | 0.28 | 0.28 | 0.28 | 0.28 | 0.28 | 0.28 | 0.01 | 0.01 | 0.01 | 0.08 | 0.08 | 0.08 |
+| Models   | mAp  | R@20  | R@50  | R@100 | ng-R@20 | ng-R@50 |ng-R@100 | zR@20 | zR@50 | zR@100 | mR@20 | mR@50 | mR@100 |
+|----------|------|-------|-------|-------|---------|---------|---------|-------|-------|--------|-------|-------|--------|
+| VCTree   | --   | 24.53 | 31.93 | 36.21 | 26.14   | 35.73   | 42.34   | 0.1   | 0.31  | 0.69   | 5.38  | 7.44  | 8.66   |
+| Ofa_tiny | 1.16 | 0.28  | 0.28  | 0.28  | 0.28    | 0.28    | 0.28    | 0.01  | 0.01  | 0.01   | 0.08  | 0.08  | 0.08   |
 
 ### SGCls
 
 ### PredCls
-| Models | mAp | R@20 | R@50 | R@100 | ng-R@20 | ng-R@50 |ng-R@100 | zR@20 | zR@50 | zR@100 | mR@20 | mR@50 | mR@100 |
+| Models | mAp | R@20 | R@50 | R@100 | ng-R@20 | ng-R@50 |ng-R@100 | zR@20 | zR@50 | zR@100 | mR@20 | mR@50 | mR@100 |  
+|--------|-----|------|------|-------|---------|---------|---------|-------|-------|--------|-------|-------|--------|  
 | VCTree | -- | 59.02 | 65.42 | 67.18 | 67.2 | 81.63 | 88.83 | 1.04 | 3.27 | 5.51 | 13.12 | 16.74 | 18.16 |
 | Ofa_tiny | 1.75 | 0.08 | 0.08 | 0.08 | 1.44 | 2.84 | 3.82 | 0.23 | 0.23 | 0.23 | 0.09 | 0.09 | 0.09 |
 
