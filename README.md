@@ -50,10 +50,10 @@ To test the SGG task for GQA or VG dataset, run `sh eval_sgg_GQA.sh` or `eval_sg
 ### SGCls
 
 ### PredCls
-| Models | mAp | R@20 | R@50 | R@100 | ng-R@20 | ng-R@50 |ng-R@100 | zR@20 | zR@50 | zR@100 | mR@20 | mR@50 | mR@100 |  
-|--------|-----|------|------|-------|---------|---------|---------|-------|-------|--------|-------|-------|--------|  
-| VCTree | -- | 59.02 | 65.42 | 67.18 | 67.2 | 81.63 | 88.83 | 1.04 | 3.27 | 5.51 | 13.12 | 16.74 | 18.16 |
-| Ofa_tiny | 1.75 | 0.08 | 0.08 | 0.08 | 1.44 | 2.84 | 3.82 | 0.23 | 0.23 | 0.23 | 0.09 | 0.09 | 0.09 |
+| Models   | mAp  | R@20  | R@50  | R@100 | ng-R@20 | ng-R@50 |ng-R@100 | zR@20 | zR@50 | zR@100 | mR@20 | mR@50 | mR@100 |  
+|----------|------|-------|-------|-------|---------|---------|---------|-------|-------|--------|-------|-------|--------|  
+| VCTree   | --   | 59.02 | 65.42 | 67.18 | 67.2    | 81.63   | 88.83   | 1.04  | 3.27  | 5.51   | 13.12 | 16.74 | 18.16  |
+| Ofa_tiny | 1.75 | 0.08  | 0.08  | 0.08  | 1.44    | 2.84    | 3.82    | 0.23  | 0.23  | 0.23   | 0.09  | 0.09  | 0.09   |
 
 ### Overfit
 Overfit
@@ -78,3 +78,6 @@ Groundtruth: ['man ', [102], [36], [188], [153], ' is ', 'has ', 'leg ', [159], 
 ![visualization2](pictures/visualization2.png)
 
 
+
+## Analysis
+As illustrated in the preceding image, the result for this method does not achieve as good as the state of the art approaches. This might due to the reason that OFA does not pretrain on long sentences, therefore when the sequence is long, it might contain less information. Another reason might be OFA achieves relative low results on object detection, therefore the object number in each image will be less than the ground truth, leading to a poor realtion detection result.
