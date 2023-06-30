@@ -120,9 +120,9 @@ def do_vg_evaluation(
             prepare_pred = prepare_prediction(prediction, dataset, pred_mode='xywh')
             box, label, score = prepare_pred.get_bbox(), prepare_pred.get_label(), prepare_pred.score # box is xywh
 
-            print("prediction sentence: ", prediction)
-            print("predicted labels: ", label)
-            print("predicted boxes: ", box)
+            # print("prediction sentence: ", prediction)
+            # print("predicted labels: ", label)
+            # print("predicted boxes: ", box)
             
             # ground truth for debug
             img = Image.open(dataset.filenames[image_idx]).convert("RGB")
@@ -133,25 +133,25 @@ def do_vg_evaluation(
             for i in range(len(box_gt_debug)):
                 box_gt_debug[i][2] = max(box_gt_debug[i][2] - box_gt_debug[i][0], 0) # convert to xywh
                 box_gt_debug[i][3] = max(box_gt_debug[i][3] - box_gt_debug[i][1], 0)
-            print("sentences_gt: ", seq)
-            print("box_gt: ", box_gt_debug)
-            print("label_gt: ", label_gt_debug)
+            # print("sentences_gt: ", seq)
+            # print("box_gt: ", box_gt_debug)
+            # print("label_gt: ", label_gt_debug)
 
             # TODO: Extract bbox and obj from short sequence
 
 
 
-            pdb.set_trace()
+            # pdb.set_trace()
 
             # for predcls, we set label and score to groundtruth
-            if mode == 'predcls':
-                label = label_gt_debug.detach().cpu().numpy()
-                score = np.ones(label.shape[0])
-                box_gt = np.asarray(box_gt_debug)
-                if label.shape[0] > box.shape[0]:
-                    box_origin = box.copy()
-                    m = len(box)
-                    box = np.concatenate((box, box_gt[m:, :]), 0)
+            # if mode == 'predcls':
+            #     label = label_gt_debug.detach().cpu().numpy()
+            #     score = np.ones(label.shape[0])
+            #     box_gt = np.asarray(box_gt_debug)
+            #     if label.shape[0] > box.shape[0]:
+            #         box_origin = box.copy()
+            #         m = len(box)
+            #         box = np.concatenate((box, box_gt[m:, :]), 0)
             image_idx = np.asarray([image_idx]*len(box))
             
             # score_gt_debug = np.asarray([1]*len(box))
